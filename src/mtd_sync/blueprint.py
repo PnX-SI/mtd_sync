@@ -1,31 +1,28 @@
-from flask import request, g, current_app
+from flask import request, g, current_app, Blueprint
 import logging
+from flask_login import login_required, login_manager
+from geonature.core.gn_meta.routes import routes
+
+log = logging.getLogger()
+blueprint = Blueprint("mtd_sync", __name__)
 
 
 @current_app.before_request
 def synchronize_mtd():
-    from flask_login import current_user
 
-    from geonature.core.gn_meta.mtd import (
-        INPNCAS,
+    from .mtd_sync import (
         sync_af_and_ds as mtd_sync_af_and_ds,
         sync_af_and_ds_by_user,
     )
-
-    INPNCAS.base_url = "https://inpn.mnhn.fr/authentication/"
-    INPNCAS.user = "user_change"
-    INPNCAS.password = "pass_change"
-    INPNCAS.id_instance_filter = 6
-    INPNCAS.mtd_api_endpoint = "https://preprod-inpn.mnhn.fr/mtd"
-    INPNCAS.activated = True
-
-    log = logging.getLogger()
 
     if request.endpoint in [
         "gn_meta.get_datasets",
         "gn_meta.get_acquisition_frameworks_list",
     ]:
+        from flask_login import current_user
+
+        # print(current_user.id_role)
         try:
-            sync_af_and_ds_by_user(id_role=current_user.id_role)
+            sync_af_and_ds_by_user(id_role=24725)
         except Exception as e:
             log.exception("Error while get JDD via MTD")

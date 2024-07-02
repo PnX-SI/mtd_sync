@@ -22,7 +22,12 @@ from geonature.core.users import routes as users
 from geonature.core.auth.routes import insert_user_and_org, get_user_from_id_inpn_ws
 
 from .xml_parser import parse_acquisition_framwork_xml, parse_jdd_xml
-from .mtd_webservice import get_jdd_by_user_id, get_acquisition_framework, get_jdd_by_uuid
+from .mtd_webservice import (
+    get_jdd_by_user_id,
+    get_acquisition_framework,
+    get_jdd_by_uuid,
+)
+from geonature.utils.config import config
 
 NOMENCLATURE_MAPPING = {
     "cd_nomenclature_data_type": "DATA_TYP",
@@ -55,7 +60,9 @@ def sync_ds(ds, cd_nomenclatures):
     af_uuid = ds.pop("uuid_acquisition_framework")
     af = (
         DB.session.execute(
-            select(TAcquisitionFramework).filter_by(unique_acquisition_framework_id=af_uuid)
+            select(TAcquisitionFramework).filter_by(
+                unique_acquisition_framework_id=af_uuid
+            )
         )
         .unique()
         .scalar_one_or_none()
@@ -68,7 +75,9 @@ def sync_ds(ds, cd_nomenclatures):
     ds["id_acquisition_framework"] = af.id_acquisition_framework
     ds = {
         field.replace("cd_nomenclature", "id_nomenclature"): (
-            func.ref_nomenclatures.get_id_nomenclature(NOMENCLATURE_MAPPING[field], value)
+            func.ref_nomenclatures.get_id_nomenclature(
+                NOMENCLATURE_MAPPING[field], value
+            )
             if field.startswith("cd_nomenclature")
             else value
         )
@@ -123,7 +132,9 @@ def sync_af(af):
     """
     af_uuid = af["unique_acquisition_framework_id"]
     af_exists = DB.session.scalar(
-        exists().where(TAcquisitionFramework.unique_acquisition_framework_id == af_uuid).select()
+        exists()
+        .where(TAcquisitionFramework.unique_acquisition_framework_id == af_uuid)
+        .select()
     )
 
     # Update statement if AF already exists in DB else insert statement
@@ -156,7 +167,9 @@ def add_or_update_organism(uuid, nom, email):
     :param email: org email
     """
     # Test if actor already exists to avoid nextVal increase
-    org_exist = DB.session.scalar(exists().where(BibOrganismes.uuid_organisme == uuid).select())
+    org_exist = DB.session.scalar(
+        exists().where(BibOrganismes.uuid_organisme == uuid).select()
+    )
 
     if org_exist:
         statement = (
@@ -241,6 +254,10 @@ def associate_dataset_modules(dataset):
     """
     dataset.modules.extend(
         DB.session.scalars(
-            select(TModules).where(TModules.module_code.in_(["OCCTAX", "OCCHAB", "IMPORT"]))
+            select(TModules).where(
+                TModules.module_code.in_(
+                    config["MTD_SYNC"]["JDD_MODULE_CODE_ASSOCIATION"]
+                )
+            )
         ).all()
     )
