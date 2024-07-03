@@ -27,7 +27,6 @@ from .mtd_webservice import (
     get_acquisition_framework,
     get_jdd_by_uuid,
 )
-from geonature.utils.config import config
 
 NOMENCLATURE_MAPPING = {
     "cd_nomenclature_data_type": "DATA_TYP",
@@ -256,7 +255,7 @@ def associate_dataset_modules(dataset):
         DB.session.scalars(
             select(TModules).where(
                 TModules.module_code.in_(
-                    config["MTD_SYNC"]["JDD_MODULE_CODE_ASSOCIATION"]
+                    current_app.config["MTD_SYNC"]["JDD_MODULE_CODE_ASSOCIATION"]
                 )
             )
         ).all()

@@ -2,7 +2,7 @@ from geonature.utils import utilsrequests
 from geonature.utils.errors import GeonatureApiError
 from geonature.utils.config import config
 
-api_endpoint = config["MTD_API_ENDPOINT"]
+api_endpoint = config["MTD_SYNC"]["MTD_API_ENDPOINT"]
 
 
 def get_acquisition_framework(uuid_af):
@@ -37,7 +37,9 @@ def get_jdd_by_user_id(id_user):
         assert r.status_code == 200
     except AssertionError:
         raise GeonatureApiError(
-            message="Error with the MTD Web Service (JDD), status_code: {}".format(r.status_code)
+            message="Error with the MTD Web Service (JDD), status_code: {}".format(
+                r.status_code
+            )
         )
     return r.content
 

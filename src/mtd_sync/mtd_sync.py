@@ -157,13 +157,10 @@ class MTDInstanceApi:
 
 
 class INPNCAS:
-    base_url = ""
-    user = ""
-    password = ""
-    id_instance_filter = None
+    base_url = configuration_mtd["BASE_URL"]
+    user = configuration_mtd["USER"]
+    password = configuration_mtd["PASSWORD"]
     id_search_path = "rechercheParId/{user_id}"
-    mtd_api_endpoint = ""
-    activated = False
 
     @classmethod
     def _get_user_json(cls, user_id):
@@ -216,12 +213,11 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
     for af in af_list:
         actors = af.pop("actors")
         with db.session.begin_nested():
-            import time as t
-
-            start_add_user_time = t.time()
+            start_add_user_time = time.time()
             add_unexisting_digitizer(af["id_digitizer"] if not id_role else id_role)
-            user_add_total_time += t.time() - start_add_user_time
+            user_add_total_time += time.time() - start_add_user_time
         af = sync_af(af)
+        print(af)
         associate_actors(
             actors,
             CorAcquisitionFrameworkActor,
@@ -235,14 +231,12 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
         actors = ds.pop("actors")
         # CREATE DIGITIZER
         with db.session.begin_nested():
-            import time as t
-
-            start_add_user_time = t.time()
+            start_add_user_time = time.time()
             if not id_role:
                 add_unexisting_digitizer(ds["id_digitizer"])
             else:
                 add_unexisting_digitizer(id_role)
-            user_add_total_time += t.time() - start_add_user_time
+            user_add_total_time += time.time() - start_add_user_time
         ds = sync_ds(ds, list_cd_nomenclature)
         if ds is not None:
             associate_actors(actors, CorDatasetActor, "id_dataset", ds.id_dataset)
@@ -280,6 +274,7 @@ def sync_af_and_ds_by_user(id_role, id_af=None):
 
     logger.info("MTD - SYNC USER : START")
 
+    # Create an instance of MTDInstanceApi
     mtd_api = MTDInstanceApi(
         configuration_mtd["MTD_API_ENDPOINT"],
         configuration_mtd["ID_INSTANCE_FILTER"],
