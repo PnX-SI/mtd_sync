@@ -249,6 +249,7 @@ def associate_actors(actors, CorActor, pk_name, pk_value):
             )
             DB.session.execute(statement)
         except IntegrityError as I:
+            db.session.rollback()
             print("ERROR ASSOCIATE ACTORS")
 
 
