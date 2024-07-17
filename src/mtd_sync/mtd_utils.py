@@ -10,7 +10,7 @@ from sqlalchemy.sql import func, update
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from geonature.utils.env import DB
+from geonature.utils.env import DB, db
 from geonature.core.gn_meta.models import (
     TDatasets,
     CorDatasetActor,
