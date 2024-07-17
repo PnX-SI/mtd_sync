@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 from lxml import etree
 import requests
 
-from geonature.core.auth.routes import insert_user_and_org
+
 from geonature.core.gn_meta.models import (
     CorAcquisitionFrameworkActor,
     CorDatasetActor,
@@ -20,7 +20,7 @@ from pypnusershub.db.models import User
 from pypnusershub.auth.providers.cas_inpn_provider import *
 from sqlalchemy import func, select
 
-from .mtd_utils import associate_actors, sync_af, sync_ds
+from .mtd_utils import associate_actors, sync_af, sync_ds, insert_user_and_org
 from .xml_parser import (
     parse_acquisition_framework,
     parse_acquisition_framwork_xml,

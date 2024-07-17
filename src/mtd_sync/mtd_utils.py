@@ -9,7 +9,7 @@ from sqlalchemy.sql import func, update
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from geonature.utils.env import DB
+from geonature.utils.env import DB, db
 from geonature.core.gn_meta.models import (
     TDatasets,
     CorDatasetActor,
@@ -19,14 +19,11 @@ from geonature.core.gn_meta.models import (
 from geonature.core.gn_commons.models import TModules
 from pypnusershub.db.models import Organisme as BibOrganismes, User
 from geonature.core.users import routes as users
-from geonature.core.auth.routes import insert_user_and_org, get_user_from_id_inpn_ws
+from geonature.utils.errors import GeonatureApiError
+from pypnusershub.routes import insert_or_update_organism
+from pypnusershub.auth.providers.cas_inpn_provider import AuthenficationCASINPN
+from pypnusershub.auth.auth_manager import auth_manager
 
-from .xml_parser import parse_acquisition_framwork_xml, parse_jdd_xml
-from .mtd_webservice import (
-    get_jdd_by_user_id,
-    get_acquisition_framework,
-    get_jdd_by_uuid,
-)
 
 NOMENCLATURE_MAPPING = {
     "cd_nomenclature_data_type": "DATA_TYP",
@@ -260,3 +257,73 @@ def associate_dataset_modules(dataset):
             )
         ).all()
     )
+
+
+class CasAuthentificationError(GeonatureApiError):
+    pass
+
+
+def insert_user_and_org(info_user, update_user_organism: bool = True):
+    id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
+    if not id_provider_inpn in auth_manager:
+        raise GeonatureApiError(
+            f"Identity provider named {id_provider_inpn} is not registered ! "
+        )
+    inpn_identity_provider = auth_manager.get_provider(id_provider_inpn)
+
+    organism_id = info_user["codeOrganisme"]
+    organism_name = info_user.get("libelleLongOrganisme", "Autre")
+    user_login = info_user["login"]
+    user_id = info_user["id"]
+
+    try:
+        assert user_id is not None and user_login is not None
+    except AssertionError:
+        log.error("'CAS ERROR: no ID or LOGIN provided'")
+        raise CasAuthentificationError(
+            "CAS ERROR: no ID or LOGIN provided", status_code=500
+        )
+
+    # Reconciliation avec base GeoNature
+    if organism_id:
+        organism = {"id_organisme": organism_id, "nom_organisme": organism_name}
+        insert_or_update_organism(organism)
+
+    # Retrieve user information from `info_user`
+    user_info = {
+        "id_role": user_id,
+        "identifiant": user_login,
+        "nom_role": info_user["nom"],
+        "prenom_role": info_user["prenom"],
+        "id_organisme": organism_id,
+        "email": info_user["email"],
+        "active": True,
+    }
+
+    # If not updating user organism and user already exists, retrieve existing user organism information rather than information from `info_user`
+    existing_user = User.query.get(user_id)
+    if not update_user_organism and existing_user:
+        user_info["id_organisme"] = existing_user.id_organisme
+
+    # Insert or update user
+    user_ = User(**user_info)
+
+    user_info = inpn_identity_provider.insert_or_update_role(user_, "email")
+
+    # Associate user to a default group if the user is not associated to any group
+    user = existing_user or db.session.get(User, user_id)
+
+    if not user.groups:
+        if (
+            current_app.config["MTD_SYNC"]["USERS_CAN_SEE_ORGANISM_DATA"]
+            and organism_id
+        ):
+            # group socle 2 - for a user associated to an organism if users can see data from their organism
+            group_id = current_app.config["MTD_SYNC"]["ID_USER_SOCLE_2"]
+        else:
+            # group socle 1
+            group_id = current_app.config["MTD_SYNC"]["ID_USER_SOCLE_1"]
+        group = db.session.get(User, group_id)
+        user.groups.append(group)
+
+    return user_info
