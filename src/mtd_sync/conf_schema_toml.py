@@ -14,3 +14,5 @@ class GnModuleSchemaConf(Schema):
         fields.String, load_default=["OCCTAX", "OCCHAB"]
     )
     ID_PROVIDER_INPN = fields.String(load_default="cas_inpn")
+    ID_USER_SOCLE_1 = fields.Integer(load_default=1)
+    ID_USER_SOCLE_2 = fields.Integer(load_default=2)
