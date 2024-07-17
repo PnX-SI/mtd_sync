@@ -4,8 +4,9 @@ from copy import copy
 from flask import current_app
 
 from sqlalchemy import select, exists
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.sql import func, update
+
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -228,18 +229,27 @@ def associate_actors(actors, CorActor, pk_name, pk_value):
         )
         if not id_organism:
             values["id_role"] = DB.session.scalar(
-                select(User.id_role).filter_by(email=actor["email"])
+                select(User.id_role)
+                .filter_by(email=actor["email"])
+                .where(User.groupe.is_(False))
             )
         else:
             values["id_organism"] = id_organism
-        statement = (
-            pg_insert(CorActor)
-            .values(**values)
-            .on_conflict_do_nothing(
-                index_elements=[pk_name, "id_organism", "id_nomenclature_actor_role"],
+        try:
+            statement = (
+                pg_insert(CorActor)
+                .values(**values)
+                .on_conflict_do_nothing(
+                    index_elements=[
+                        pk_name,
+                        "id_organism" if id_organism else "id_role",
+                        "id_nomenclature_actor_role",
+                    ],
+                )
             )
-        )
-        DB.session.execute(statement)
+            DB.session.execute(statement)
+        except IntegrityError as I:
+            print("ERROR ASSOCIATE ACTORS")
 
 
 def associate_dataset_modules(dataset):
@@ -264,12 +274,17 @@ class CasAuthentificationError(GeonatureApiError):
 
 
 def insert_user_and_org(info_user, update_user_organism: bool = True):
+
     id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
-    if not id_provider_inpn in auth_manager:
-        raise GeonatureApiError(
-            f"Identity provider named {id_provider_inpn} is not registered ! "
-        )
-    inpn_identity_provider = auth_manager.get_provider(id_provider_inpn)
+    idprov = AuthenficationCASINPN()
+    idprov.id_provider = id_provider_inpn
+    auth_manager.add_provider(id_provider_inpn, idprov)
+
+    # if not id_provider_inpn in auth_manager:
+    #     raise GeonatureApiError(
+    #         f"Identity provider named {id_provider_inpn} is not registered ! "
+    #     )
+    inpn_identity_provider = idprov
 
     organism_id = info_user["codeOrganisme"]
     organism_name = info_user.get("libelleLongOrganisme", "Autre")
@@ -306,9 +321,9 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
         user_info["id_organisme"] = existing_user.id_organisme
 
     # Insert or update user
-    user_ = User(**user_info)
 
-    user_info = inpn_identity_provider.insert_or_update_role(user_, "email")
+    with current_app.app_context():
+        user_info = inpn_identity_provider.insert_or_update_role(user_info, "email")
 
     # Associate user to a default group if the user is not associated to any group
     user = existing_user or db.session.get(User, user_id)
