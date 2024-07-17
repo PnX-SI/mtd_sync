@@ -13,3 +13,4 @@ class GnModuleSchemaConf(Schema):
     JDD_MODULE_CODE_ASSOCIATION = fields.List(
         fields.String, load_default=["OCCTAX", "OCCHAB"]
     )
+    ID_PROVIDER_INPN = fields.String(load_default="cas_inpn")
