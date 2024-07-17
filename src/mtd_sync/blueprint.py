@@ -35,7 +35,7 @@ def synchronize_mtd():
     default=None,
     help="ID of an acquisition framework",
 )
-def mtd_sync(id_role, id_af):
+def sync(id_role, id_af):
     """
     \b
     Triggers :
