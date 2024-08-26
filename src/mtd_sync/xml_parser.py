@@ -75,15 +75,13 @@ def parse_acquisition_framwork_xml(xml):
 def parse_acquisition_framework(ca):
     # We extract all the required informations from the different tags of the XML file
     ca_uuid = get_tag_content(ca, "identifiantCadre")
-    ca_name_max_length = (
-        TAcquisitionFramework.acquisition_framework_name.property.columns[0].type.length
-    )
+    ca_name_max_length = TAcquisitionFramework.acquisition_framework_name.property.columns[
+        0
+    ].type.length
     ca_name = get_tag_content(ca, "libelle")[: ca_name_max_length - 1]
     ca_desc = get_tag_content(ca, "description", default_value="")
     date_info = ca.find(namespace + "ReferenceTemporelle")
-    ca_create_date = get_tag_content(
-        ca, "dateCreationMtd", default_value=datetime.datetime.now()
-    )
+    ca_create_date = get_tag_content(ca, "dateCreationMtd", default_value=datetime.datetime.now())
     ca_update_date = get_tag_content(ca, "dateMiseAJourMtd")
     ca_start_date = get_tag_content(
         date_info, "dateLancement", default_value=datetime.datetime.now()
@@ -139,15 +137,11 @@ def parse_jdd_xml(xml):
         dataset_name = get_tag_content(jdd, "libelle")
         dataset_shortname = get_tag_content(jdd, "libelleCourt", default_value="")
         dataset_desc = get_tag_content(jdd, "description", default_value="")
-        terrestrial_domain = get_tag_content(
-            jdd, "domaineTerrestre", default_value=False
-        )
+        terrestrial_domain = get_tag_content(jdd, "domaineTerrestre", default_value=False)
         marine_domain = get_tag_content(jdd, "domaineMarin", default_value=False)
         data_type = get_tag_content(jdd, "typeDonnees")
         collect_data_type = get_tag_content(jdd, "typeDonneesCollectees")
-        create_date = get_tag_content(
-            jdd, "dateCreation", default_value=datetime.datetime.now()
-        )
+        create_date = get_tag_content(jdd, "dateCreation", default_value=datetime.datetime.now())
         update_date = get_tag_content(jdd, "dateRevision")
         attributs_additionnels_node = jdd.find(namespace + "attributsAdditionnels")
 

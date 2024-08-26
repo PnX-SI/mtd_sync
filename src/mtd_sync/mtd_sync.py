@@ -35,9 +35,7 @@ logger = logging.getLogger("MTD_SYNC")
 # config logger
 logger.setLevel(configuration_mtd["SYNC_LOG_LEVEL"])
 handler = logging.StreamHandler()
-formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)s : %(message)s", "%Y-%m-%d %H:%M:%S"
-)
+formatter = logging.Formatter("%(asctime)s | %(levelname)s : %(message)s", "%Y-%m-%d %H:%M:%S")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 # avoid logging output dupplication

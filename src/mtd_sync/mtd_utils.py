@@ -56,9 +56,7 @@ def sync_ds(ds, cd_nomenclatures):
     af_uuid = ds.pop("uuid_acquisition_framework")
     af = (
         DB.session.execute(
-            select(TAcquisitionFramework).filter_by(
-                unique_acquisition_framework_id=af_uuid
-            )
+            select(TAcquisitionFramework).filter_by(unique_acquisition_framework_id=af_uuid)
         )
         .unique()
         .scalar_one_or_none()
@@ -71,9 +69,7 @@ def sync_ds(ds, cd_nomenclatures):
     ds["id_acquisition_framework"] = af.id_acquisition_framework
     ds = {
         field.replace("cd_nomenclature", "id_nomenclature"): (
-            func.ref_nomenclatures.get_id_nomenclature(
-                NOMENCLATURE_MAPPING[field], value
-            )
+            func.ref_nomenclatures.get_id_nomenclature(NOMENCLATURE_MAPPING[field], value)
             if field.startswith("cd_nomenclature")
             else value
         )
@@ -128,9 +124,7 @@ def sync_af(af):
     """
     af_uuid = af["unique_acquisition_framework_id"]
     af_exists = DB.session.scalar(
-        exists()
-        .where(TAcquisitionFramework.unique_acquisition_framework_id == af_uuid)
-        .select()
+        exists().where(TAcquisitionFramework.unique_acquisition_framework_id == af_uuid).select()
     )
 
     # Update statement if AF already exists in DB else insert statement
@@ -163,9 +157,7 @@ def add_or_update_organism(uuid, nom, email):
     :param email: org email
     """
     # Test if actor already exists to avoid nextVal increase
-    org_exist = DB.session.scalar(
-        exists().where(BibOrganismes.uuid_organisme == uuid).select()
-    )
+    org_exist = DB.session.scalar(exists().where(BibOrganismes.uuid_organisme == uuid).select())
 
     if org_exist:
         statement = (
@@ -266,9 +258,7 @@ class CasAuthentificationError(GeonatureApiError):
 def insert_user_and_org(info_user, update_user_organism: bool = True):
     id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
     if not id_provider_inpn in auth_manager:
-        raise GeonatureApiError(
-            f"Identity provider named {id_provider_inpn} is not registered ! "
-        )
+        raise GeonatureApiError(f"Identity provider named {id_provider_inpn} is not registered ! ")
     inpn_identity_provider = auth_manager.get_provider(id_provider_inpn)
 
     organism_id = info_user["codeOrganisme"]
@@ -280,9 +270,7 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
         assert user_id is not None and user_login is not None
     except AssertionError:
         log.error("'CAS ERROR: no ID or LOGIN provided'")
-        raise CasAuthentificationError(
-            "CAS ERROR: no ID or LOGIN provided", status_code=500
-        )
+        raise CasAuthentificationError("CAS ERROR: no ID or LOGIN provided", status_code=500)
 
     # Reconciliation avec base GeoNature
     if organism_id:
@@ -314,10 +302,7 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
     user = existing_user or db.session.get(User, user_id)
 
     if not user.groups:
-        if (
-            current_app.config["MTD_SYNC"]["USERS_CAN_SEE_ORGANISM_DATA"]
-            and organism_id
-        ):
+        if current_app.config["MTD_SYNC"]["USERS_CAN_SEE_ORGANISM_DATA"] and organism_id:
             # group socle 2 - for a user associated to an organism if users can see data from their organism
             group_id = current_app.config["MTD_SYNC"]["ID_USER_SOCLE_2"]
         else:
