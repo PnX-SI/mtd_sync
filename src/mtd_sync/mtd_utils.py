@@ -257,9 +257,15 @@ class CasAuthentificationError(GeonatureApiError):
 
 def insert_user_and_org(info_user, update_user_organism: bool = True):
     id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
-    if not id_provider_inpn in auth_manager:
-        raise GeonatureApiError(f"Identity provider named {id_provider_inpn} is not registered ! ")
-    inpn_identity_provider = auth_manager.get_provider(id_provider_inpn)
+    idprov = AuthenficationCASINPN()
+    idprov.id_provider = id_provider_inpn
+    auth_manager.add_provider(id_provider_inpn, idprov)
+
+    # if not id_provider_inpn in auth_manager:
+    #     raise GeonatureApiError(
+    #         f"Identity provider named {id_provider_inpn} is not registered ! "
+    #     )
+    inpn_identity_provider = idprov
 
     organism_id = info_user["codeOrganisme"]
     organism_name = info_user.get("libelleLongOrganisme", "Autre")
@@ -294,9 +300,9 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
         user_info["id_organisme"] = existing_user.id_organisme
 
     # Insert or update user
-    user_ = User(**user_info)
 
-    user_info = inpn_identity_provider.insert_or_update_role(user_, "email")
+    with current_app.app_context():
+        user_info = inpn_identity_provider.insert_or_update_role(user_info, "email")
 
     # Associate user to a default group if the user is not associated to any group
     user = existing_user or db.session.get(User, user_id)

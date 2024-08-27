@@ -165,7 +165,8 @@ class INPNCAS:
         url = urljoin(cls.base_url, cls.id_search_path)
         url = url.format(user_id=user_id)
         response = requests.get(url, auth=(cls.user, cls.password))
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
 
     @classmethod
     def get_user(cls, user_id):
@@ -186,11 +187,14 @@ def add_unexisting_digitizer(id_digitizer):
     ):
         # not fast - need perf optimization on user call
         user = INPNCAS.get_user(id_digitizer)
+        if not user:
+            return None
         # to avoid to create org
         if user.get("codeOrganisme"):
             user["codeOrganisme"] = None
         # insert or update user
         insert_user_and_org(user)
+        return user
 
 
 def process_af_and_ds(af_list, ds_list, id_role=None):
@@ -212,10 +216,11 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
         actors = af.pop("actors")
         with db.session.begin_nested():
             start_add_user_time = time.time()
-            add_unexisting_digitizer(af["id_digitizer"] if not id_role else id_role)
+            new_user = add_unexisting_digitizer(af["id_digitizer"] if not id_role else id_role)
+            if new_user == None:
+                continue
             user_add_total_time += time.time() - start_add_user_time
         af = sync_af(af)
-        print(af)
         associate_actors(
             actors,
             CorAcquisitionFrameworkActor,
