@@ -1,10 +1,12 @@
 import logging
 import json
 from copy import copy
+import pprint
+from typing import Literal
 from flask import current_app
 
 from sqlalchemy import select, exists
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.sql import func, update
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -122,7 +124,19 @@ def sync_af(af):
     TAcquisitionFramework
         The updated or inserted acquisition framework.
     """
+    # TODO: handle case where af_uuid is None ; as will raise an error at database level when executing the statement below ;
+    #   af_uuid being None, i.e. af UUID is missing, could be due to no UUID specified in `<ca:identifiantCadre/>` tag in the XML file
+    #   Solutions - if UUID is missing:
+    #       - Just pass the sync of the AF
+    #       - Generate a UUID for the AF
     af_uuid = af["unique_acquisition_framework_id"]
+
+    if not af_uuid:
+        log.warning(
+            f"No UUID provided for the AF with UUID '{af_uuid}' - SKIPPING SYNCHRONIZATION FOR THIS AF."
+        )
+        return None
+
     af_exists = DB.session.scalar(
         exists().where(TAcquisitionFramework.unique_acquisition_framework_id == af_uuid).select()
     )
@@ -185,21 +199,34 @@ def add_or_update_organism(uuid, nom, email):
     return DB.session.execute(statement).scalar()
 
 
-def associate_actors(actors, CorActor, pk_name, pk_value):
+def associate_actors(
+    actors,
+    CorActor: CorAcquisitionFrameworkActor | CorDatasetActor,
+    pk_name: Literal["id_acquisition_framework", "id_dataset"],
+    pk_value: str,
+    uuid_mtd: str,
+):
     """
-    Associate actor and DS or AF according to CorActor value.
+    Associate actors with either a given :
+    - Acquisition framework - writing to the table `gn_meta.cor_acquisition_framework_actor`.
+    - Dataset - writing to the table `gn_meta.cor_dataset_actor`.
 
     Parameters
     ----------
     actors : list
         list of actors
-    CorActor : db.Model
-        table model
-    pk_name : str
-        pk attribute name
+    CorActor : CorAcquisitionFrameworkActor | CorDatasetActor
+        the SQLAlchemy model corresponding to the destination table
+    pk_name : Literal['id_acquisition_framework', 'id_dataset']
+        pk attribute name:
+        - 'id_acquisition_framework' for AF
+        - 'id_dataset' for DS
     pk_value : str
-        pk value
+        pk value: ID of the AF or DS
+    uuid_mtd : str
+        UUID of the AF or DS
     """
+    type_mtd = "AF" if pk_name == "id_acquisition_framework" else "DS"
     for actor in actors:
         id_organism = None
         uuid_organism = actor["uuid_organism"]
@@ -218,20 +245,49 @@ def associate_actors(actors, CorActor, pk_name, pk_value):
             ),
             **{pk_name: pk_value},
         )
-        if not id_organism:
-            values["id_role"] = DB.session.scalar(
-                select(User.id_role).filter_by(email=actor["email"])
-            )
-        else:
+        # TODO: choose wether to:
+        #   - (retained) Try to associate to an organism first and then to a user
+        #   - Try to associate to a user first and then to an organism
+        if id_organism:
             values["id_organism"] = id_organism
-        statement = (
-            pg_insert(CorActor)
-            .values(**values)
-            .on_conflict_do_nothing(
-                index_elements=[pk_name, "id_organism", "id_nomenclature_actor_role"],
+        # TODO: handle case where no user is retrieved for the actor email:
+        #   - (retained) Just do not try to associate the actor with the metadata
+        #   - Try to retrieve and id_organism from the organism name - field `organism`
+        #   - Try to retrieve and id_organism from the actor email considered as an organism email - field `email`
+        #   - Try to insert a new user from the actor name - field `name` - and possibly also email - field `email`
+        else:
+            id_user_from_email = DB.session.scalar(
+                select(User.id_role).filter_by(email=actor["email"]).where(User.groupe.is_(False))
             )
-        )
-        DB.session.execute(statement)
+            if id_user_from_email:
+                values["id_role"] = id_user_from_email
+            else:
+                log.warning(
+                    f"MTD - actor association impossible for {type_mtd} with UUID '{uuid_mtd}' because no id_organism nor id_organism could be retrieved - with the following actor information:\n"
+                    + format_str_dict_actor_for_logging(actor)
+                )
+                continue
+        try:
+            statement = (
+                pg_insert(CorActor)
+                .values(**values)
+                .on_conflict_do_nothing(
+                    index_elements=[
+                        pk_name,
+                        "id_organism" if id_organism else "id_role",
+                        "id_nomenclature_actor_role",
+                    ],
+                )
+            )
+            DB.session.execute(statement)
+        except IntegrityError as I:
+            db.session.rollback()
+            # TODO: uncomment following lines when work is done - commented to limit log while developping
+            log.error(
+                f"MTD - DB INTEGRITY ERROR - actor association failed for {type_mtd} with UUID '{uuid_mtd}' and following actor information:\n"
+                + format_sqlalchemy_error_for_logging(I)
+                + format_str_dict_actor_for_logging(actor)
+            )
 
 
 def associate_dataset_modules(dataset):
@@ -251,6 +307,54 @@ def associate_dataset_modules(dataset):
     )
 
 
+def format_sqlalchemy_error_for_logging(error: SQLAlchemyError):
+    """
+    Format SQLAlchemy error information in a nice way for MTD logging
+
+    Parameters
+    ----------
+    error : SQLAlchemyError
+        the SQLAlchemy error
+
+    Returns
+    -------
+    str
+        formatted error information
+    """
+    indented_original_error_message = str(error.orig).replace("\n", "\n\t")
+
+    formatted_error_message = "".join(
+        [
+            f"\t{indented_original_error_message}",
+            f"SQL QUERY:  {error.statement}\n",
+            f"\tSQL PARAMS:  {error.params}\n",
+        ]
+    )
+
+    return formatted_error_message
+
+
+def format_str_dict_actor_for_logging(actor: dict):
+    """
+    Format actor information in a nice way for MTD logging
+
+    Parameters
+    ----------
+    actor : dict
+        actor information: actor_role, email, name, organism, uuid_organism, ...
+
+    Returns
+    -------
+    str
+        formatted actor information
+    """
+    formatted_str_dict_actor = "\tACTOR:\n\t\t" + pprint.pformat(actor).replace(
+        "\n", "\n\t\t"
+    ).rstrip("\t")
+
+    return formatted_str_dict_actor
+
+
 class CasAuthentificationError(GeonatureApiError):
     pass
 
@@ -259,7 +363,8 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
     id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
     idprov = AuthenficationCASINPN()
     idprov.id_provider = id_provider_inpn
-    auth_manager.add_provider(id_provider_inpn, idprov)
+    if id_provider_inpn not in auth_manager:
+        auth_manager.add_provider(id_provider_inpn, idprov)
 
     # if not id_provider_inpn in auth_manager:
     #     raise GeonatureApiError(

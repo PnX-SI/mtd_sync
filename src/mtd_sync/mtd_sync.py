@@ -69,7 +69,7 @@ class MTDInstanceApi:
     def _get_af_xml(self):
         return self._get_xml(self.af_path)
 
-    def get_af_list(self):
+    def get_af_list(self) -> list:
         xml = self._get_af_xml()
         _xml_parser = etree.XMLParser(ns_clean=True, recover=True, encoding="utf-8")
         root = etree.fromstring(xml, parser=_xml_parser)
@@ -82,7 +82,7 @@ class MTDInstanceApi:
     def _get_ds_xml(self):
         return self._get_xml(self.ds_path)
 
-    def get_ds_list(self):
+    def get_ds_list(self) -> list:
         xml = self._get_ds_xml()
         return parse_jdd_xml(xml)
 
@@ -221,11 +221,19 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
                 continue
             user_add_total_time += time.time() - start_add_user_time
         af = sync_af(af)
+        # TODO: choose whether or not to commit retrieval of the AF before association of actors
+        #   and possibly retrieve an AF without any actor associated to it
+        db.session.commit()
+        # If AF has not been synchronized ; due to the lack of a UUID ; actor cannot be associated to it
+        #   and thus we skip to the next AF
+        if not af:
+            continue
         associate_actors(
             actors,
             CorAcquisitionFrameworkActor,
             "id_acquisition_framework",
             af.id_acquisition_framework,
+            af.unique_acquisition_framework_id,
         )
         # TODO: remove actors removed from MTD
     db.session.commit()
@@ -242,7 +250,13 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
             user_add_total_time += time.time() - start_add_user_time
         ds = sync_ds(ds, list_cd_nomenclature)
         if ds is not None:
-            associate_actors(actors, CorDatasetActor, "id_dataset", ds.id_dataset)
+            associate_actors(
+                actors,
+                CorDatasetActor,
+                "id_dataset",
+                ds.id_dataset,
+                ds.unique_dataset_id,
+            )
 
     user_add_total_time = round(user_add_total_time, 2)
     db.session.commit()
