@@ -37,9 +37,7 @@ def get_jdd_by_user_id(id_user):
         assert r.status_code == 200
     except AssertionError:
         raise GeonatureApiError(
-            message="Error with the MTD Web Service (JDD), status_code: {}".format(
-                r.status_code
-            )
+            message="Error with the MTD Web Service (JDD), status_code: {}".format(r.status_code)
         )
     return r.content
 
