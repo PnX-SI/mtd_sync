@@ -27,6 +27,8 @@ from .xml_parser import (
     parse_jdd_xml,
 )
 
+import os
+
 configuration_mtd = config["MTD_SYNC"]
 
 
