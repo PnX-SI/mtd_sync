@@ -30,6 +30,7 @@ setuptools.setup(
             "doc_url = mtd_sync:MODULE_DOC_URL",
             "blueprint = mtd_sync.blueprint:blueprint",
             "config_schema = mtd_sync.conf_schema_toml:GnModuleSchemaConf",
+            "tasks = mtd_sync.tasks",
             # "migrations = mtd_sync:migrations",
         ],
     },

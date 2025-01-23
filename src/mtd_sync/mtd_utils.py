@@ -2,7 +2,8 @@ import logging
 import json
 from copy import copy
 import pprint
-from typing import Literal
+from typing import Literal, Union
+import uuid
 from flask import current_app
 
 from sqlalchemy import select, exists
@@ -34,8 +35,14 @@ NOMENCLATURE_MAPPING = {
     "cd_nomenclature_source_status": "STATUT_SOURCE",
 }
 
-# get the root logger
-log = logging.getLogger()
+# Get the logger instance "MTD_SYNC"
+logger = logging.getLogger("MTD_SYNC")
+
+id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
+idprov = AuthenficationCASINPN()
+idprov.id_provider = id_provider_inpn
+if id_provider_inpn not in auth_manager:
+    auth_manager.add_provider(id_provider_inpn, idprov)
 
 
 def sync_ds(ds, cd_nomenclatures):
@@ -46,12 +53,22 @@ def sync_ds(ds, cd_nomenclatures):
     :param ds: <dict> DS infos
     :param cd_nomenclatures: <array> cd_nomenclature from ref_normenclatures.t_nomenclatures
     """
+
+    uuid_ds = ds["unique_dataset_id"]
+    name_ds = ds["dataset_name"]
+
+    logger.debug("MTD - PROCESSING DS WITH UUID '%s' AND NAME '%s'" % (uuid_ds, name_ds))
+
     if not ds["cd_nomenclature_data_origin"]:
         ds["cd_nomenclature_data_origin"] = "NSP"
 
     # FIXME: the following temporary fix was added due to possible differences in referential of nomenclatures values between INPN and GeoNature
     #     should be fixed by ensuring that the two referentials are identical, at least for instances that integrates with INPN and thus rely on MTD synchronization from INPN Métadonnées: GINCO and DEPOBIO instances.
-    if ds["cd_nomenclature_data_origin"] not in cd_nomenclatures:
+    ds_cd_nomenclature_data_origin = ds["cd_nomenclature_data_origin"]
+    if ds_cd_nomenclature_data_origin not in cd_nomenclatures:
+        logger.warning(
+            f"MTD - Nomenclature with code '{ds_cd_nomenclature_data_origin}' not found in database - SKIPPING SYNCHRONIZATION OF DATASET WITH UUID '{uuid_ds}' AND NAME '{name_ds}'"
+        )
         return
 
     # CONTROL AF
@@ -65,7 +82,9 @@ def sync_ds(ds, cd_nomenclatures):
     )
 
     if af is None:
-        log.warning(f"AF with UUID '{af_uuid}' not found in database.")
+        logger.warning(
+            f"MTD - AF with UUID '{af_uuid}' not found in database - SKIPPING SYNCHRONIZATION OF DATASET WITH UUID '{uuid_ds}' AND NAME '{name_ds}'"
+        )
         return
 
     ds["id_acquisition_framework"] = af.id_acquisition_framework
@@ -112,7 +131,8 @@ def sync_ds(ds, cd_nomenclatures):
 
 
 def sync_af(af):
-    """Will update a given AF (Acquisition Framework) if already exists in database according to UUID, else update the AF.
+    """
+    Will update a given AF (Acquisition Framework) if already exists in database according to UUID, else update the AF.
 
     Parameters
     ----------
@@ -130,9 +150,12 @@ def sync_af(af):
     #       - Just pass the sync of the AF
     #       - Generate a UUID for the AF
     af_uuid = af["unique_acquisition_framework_id"]
+    name_af = af["acquisition_framework_name"]
+
+    logger.debug("MTD - PROCESSING AF WITH UUID '%s' AND NAME '%s'" % (af_uuid, name_af))
 
     if not af_uuid:
-        log.warning(
+        logger.warning(
             f"No UUID provided for the AF with UUID '{af_uuid}' - SKIPPING SYNCHRONIZATION FOR THIS AF."
         )
         return None
@@ -201,7 +224,7 @@ def add_or_update_organism(uuid, nom, email):
 
 def associate_actors(
     actors,
-    CorActor: CorAcquisitionFrameworkActor | CorDatasetActor,
+    CorActor: Union[CorAcquisitionFrameworkActor, CorDatasetActor],
     pk_name: Literal["id_acquisition_framework", "id_dataset"],
     pk_value: str,
     uuid_mtd: str,
@@ -215,7 +238,7 @@ def associate_actors(
     ----------
     actors : list
         list of actors
-    CorActor : CorAcquisitionFrameworkActor | CorDatasetActor
+    CorActor : Union[CorAcquisitionFrameworkActor, CorDatasetActor]
         the SQLAlchemy model corresponding to the destination table
     pk_name : Literal['id_acquisition_framework', 'id_dataset']
         pk attribute name:
@@ -230,19 +253,64 @@ def associate_actors(
     for actor in actors:
         id_organism = None
         uuid_organism = actor["uuid_organism"]
+        organism_name = actor["organism"]
+        email_actor = actor["email"]
         if uuid_organism:
             with DB.session.begin_nested():
                 # create or update organisme
                 # FIXME: prevent update of organism email from actor email ! Several actors may be associated to the same organism and still have different mails !
                 id_organism = add_or_update_organism(
                     uuid=uuid_organism,
-                    nom=actor["organism"] if actor["organism"] else "",
-                    email=actor["email"],
+                    nom=organism_name if organism_name else None,
+                    email=email_actor,
                 )
+        else:
+            # Retrieve or create an organism in database with `organism_name` as the organism name
+            # /!\ Handle case where there is also an organism with the name equals to the value of `name_organism`
+            #   - check if there already is an organism with the name `organism_name`
+            #       - if there is one:
+            #           - TODO: choose wether to update the organism with the values `organism_name` and `email_actor` or not
+            #           - set `id_organism` with the ID of the existing organism
+            #       - if there is not:
+            #           - set `id_organism` with the ID of a newly created organism
+            if organism_name:
+                is_exists_organism = DB.session.scalar(
+                    exists().where(BibOrganismes.nom_organisme == organism_name).select()
+                )
+                if is_exists_organism:
+                    # TODO: choose whether to keep the following section - update of the organism with the values `organism_name` and `email_actor` ?
+                    # --- If yes: uncomment the two following statements
+                    # uuid_organism = DB.session.scalar(
+                    #     select(BibOrganismes.uuid_organisme)
+                    #     .where(BibOrganismes.nom_organisme == organism_name)
+                    #     .limit(1)
+                    # )
+                    # id_organism = add_or_update_organism(
+                    #         uuid=uuid_organism,
+                    #         nom=organism_name,
+                    #         email=email_actor,
+                    # )
+                    id_organism = DB.session.scalar(
+                        select(BibOrganismes.id_organisme)
+                        .where(BibOrganismes.nom_organisme == organism_name)
+                        .limit(1)
+                    )
+                else:
+                    with DB.session.begin_nested():
+                        # Create a new organism with the provided name
+                        #   /!\ We do not use the actor email as the organism email - field `bib_organismes.email_organisme` will be empty
+                        #   Only the three non-null fields will be written: `id_organisme`, `uuid_organisme`, `nom_organisme`.
+                        id_organism = add_or_update_organism(
+                            uuid=str(uuid.uuid4()),
+                            nom=organism_name,
+                            email=None,
+                        )
+        cd_nomenclature_actor_role = actor["actor_role"]
+        id_nomenclature_actor_role = func.ref_nomenclatures.get_id_nomenclature(
+            "ROLE_ACTEUR", cd_nomenclature_actor_role
+        )
         values = dict(
-            id_nomenclature_actor_role=func.ref_nomenclatures.get_id_nomenclature(
-                "ROLE_ACTEUR", actor["actor_role"]
-            ),
+            id_nomenclature_actor_role=id_nomenclature_actor_role,
             **{pk_name: pk_value},
         )
         # TODO: choose wether to:
@@ -262,11 +330,125 @@ def associate_actors(
             if id_user_from_email:
                 values["id_role"] = id_user_from_email
             else:
-                log.warning(
-                    f"MTD - actor association impossible for {type_mtd} with UUID '{uuid_mtd}' because no id_organism nor id_organism could be retrieved - with the following actor information:\n"
-                    + format_str_dict_actor_for_logging(actor)
-                )
-                continue
+                # If actor role is "Contact Principal", i.e. cd_nomenclature_actor_role = '1' ,
+                #   then we use a dedicated user for 'orphan' metadata - metadata with no associated "Contact principal" actor that could be retrieved
+                #   the three non-null fields for `utilisateurs.t_roles` will be set to default:
+                #       - `groupe`: False - the role is a user and not a group
+                #       - `id_role`: generated by the nextval sequence
+                #       - `uuid_role`: generated by uuid_generate_v4()
+                #   in particular:
+                #       - we do not specify field `email` even if `email_actor` is to be set
+                #       - only the field `dec_role` will be written to a non-default value, so as to identify this particular "Contact principal"-for-orphan-metadata user
+                # TODO: FUNCTIONAL - verify:
+                #   - whether to:
+                #       - (alternative 0) systematically add a new user for each concerned metadata
+                #       - (RETAINED FOR THE MOMENT) or rather use a single user for all metadata without retrieved "Contact Principal"
+                #   - whether it is right to use only (strictly) negative values for those new users:
+                #       - must ensure that we will not already have (strictly) negative values in the `utilisateurs.t_roles` table for concerned instances (GINCO, DEPOBIO, ...)
+                #       - what are the limits for 'serial4' PostgreSQL type: minimum and maximum values, ...
+                #       - alternatives:
+                #           - using the nextval sequence several times until an unused value is found BUT possible future conflict with new entries from INPN users
+                #           - take the first value superior to 0 and which is not already used BUT possible future conflict with new entries from INPN users
+                #           - take a base value which is enough high to avoid conflicts with INPN users IDs
+                #           - start from the maximum or minimum value allowed by 'serial4' PostgreSQL type
+                #   - whether to add a new user or a new organism...
+                cd_nomenclature_actor_role_for_contact_principal_af = "1"
+                if (
+                    type_mtd == "AF"
+                    and cd_nomenclature_actor_role
+                    == cd_nomenclature_actor_role_for_contact_principal_af
+                ):
+                    ### Alternative 0 (see TODO above):
+                    ###   UNCOMMENT the folowing section if this alternative is eventually chosen
+                    # # Get an integer that is equals to 1 less than the minimum of `utilisateurs.id_role` field in database
+                    # #   to ensure that the new ID is not already used
+                    # #   - we cannot rely on the next value from the sequence `utilisateurs.t_roles.t_roles_id_role_seq` because we can have,
+                    # #       and actually have for GINCO and DEPOBIO instances, ID values higher than this next value: this is due
+                    # #       to the fact that entries are inserted in the table `utilisateurs.t_roles` specifying the ID rather than
+                    # #       using the nextval sequence.
+                    # #   - moreover, we cannot actually take a (strictly) positive integer value as we risk to take an ID that could
+                    # #       later be needed for the retrieval of a user from the INPN as users are retrieved from the INPN taking
+                    # #       values associated to them in the INPN, especially the ID, for the insert in `utilisateurs.t_roles`.
+                    # #   - in other words, the field `utilisateurs.t_roles.id_roles` is actually not localized to the GeoNature instance, at
+                    # #       least for instances integrated with the INPN such as GINCO and DEPOBIO instances.
+                    # # We take a value that is at most equal to -1 so as to clearly identify those generated users as the users
+                    # #   with (strictly) negative IDs.
+                    # min_id_role = DB.session.scalar(
+                    #     select(func.min(User.id_role))
+                    # )
+                    # if min_id_role == 1:
+                    #     min_id_role = -1
+                    # if min_id_role:
+                    #     id_generated_user = min_id_role - 1
+                    # else:
+                    #     id_generated_user = 1
+                    ### RETAINED FOR THE MOMENT (see TODO above):
+                    # TODO:
+                    #   - i. TODO: Choose of ID for user created for metadata with no "Contact Principal" that could be retrieved - alternatives:
+                    #       - (RETAINED FOR THE MOMENT)(alternative 0.1) value 0 - assuming that 0 is never used amongst the different instances
+                    #       - (alternative 0.2) value -1 - assuming that -1 is never used amongst the different instances AND that it is a valid value for 'serial4'
+                    #           actually it should not be possible to have negative values for the 'serial4' PostgreSQL type,
+                    #           which should allow values ranging from 1 to 2147483647
+                    #           // documentation PG 16: https://www.postgresql.org/docs/current/datatype-numeric.html#DATATYPE-NUMERIC
+                    #           BUT a test creating a user with ID = -1 in a GN database has been done successfully...
+                    #           TODO: determiner why is it possible to have a value of -1, and other negative values (-2 has been tested also)
+                    #       - (alternative 0.3) value 2147483647 - maximum value for 'serial4' PostgreSQL type
+                    #       - (alternative 0.4) minimum negative value [to be determined]
+                    #   - ii. TODO: Choose whether to
+                    #       - add textual information to the created user
+                    #           - which information to provide:
+                    #               - (RETAINED FOR THE MOMENT) "Contact Principal for 'orphan' metadata - with no 'Contact Principal' that could be retrieved during MTD INPN synchronisation"
+                    #               - (alternatives) ...
+                    #           - which fields in `utilisateurs.t_roles` to be written:
+                    #               - (?) `identifiant`
+                    #               - (?) `nom_role`
+                    #               - (?) `prenom_role`
+                    #               - (?) `email`
+                    #               - (?) `id_organisme`
+                    #               - (RETAINED FOR THE MOMENT) `desc_role` (text)
+                    #                   - (RETAINED FOR THE MOMENT) "Contact Principal for 'orphan' metadata - i.e. with no 'Contact Principal' that could be retrieved during INPN MTD synchronisation"
+                    #               - (??) `champs_addi`
+                    #               - (?) `remarques` (text)
+                    #       - (alternative) or not - the user will only have: an ID, a UUID
+                    # Retrieve the "Contact principal"-for-orphan-metadata user
+                    desc_role_for_user_contact_principal_for_orphan_metadata = "Contact principal for 'orphan' metadata - i.e. with no 'Contact Principal' that could be retrieved during INPN MTD synchronisation"
+                    id_user_contact_principal_for_orphan_metadata = 0
+                    user_contact_principal_for_orphan_metadata = DB.session.get(
+                        User, id_user_contact_principal_for_orphan_metadata
+                    )
+                    # /!\ Assert that the user with ID 0 retrieved is actually the "Contact principal"-for-orphan-metadata user with the right "desc_role"
+                    #   If an error is raised, one must choose how to handle this situation:
+                    #       - Check for the current user with ID 0
+                    #       - Possibly change the ID of this user to an ID other than 0
+                    #           /!\ Be careful to the other entries associated to this user
+                    #           /!\ Be careful when choosing a new ID : positive integer should be reserved for users retrieved from the INPN
+                    #       - Eventually change the code to:
+                    #           - set an ID other than 0 for the "Contact principal"-for-orphan-metadata user
+                    #           - possibly allow to configure a different ID for different GN instances
+                    if user_contact_principal_for_orphan_metadata:
+                        assert (
+                            user_contact_principal_for_orphan_metadata.desc_role
+                            == desc_role_for_user_contact_principal_for_orphan_metadata
+                        )
+                    # If the user does not yet exist, create it
+                    else:
+                        dict_data_generated_user = {
+                            "id_role": id_user_contact_principal_for_orphan_metadata,
+                            "desc_role": desc_role_for_user_contact_principal_for_orphan_metadata,
+                        }
+                        dict_data_generated_user = idprov.insert_or_update_role(
+                            data=dict_data_generated_user
+                        )
+                    # TODO: verify it is ok to commit here
+                    # Commit to ensure that the insert from previous statement is actually committed
+                    DB.session.commit()
+                    values["id_role"] = id_user_contact_principal_for_orphan_metadata
+                else:
+                    logger.warning(
+                        f"MTD - actor association impossible for {type_mtd} with UUID '{uuid_mtd}' because no id_organism nor id_role could be retrieved - with the following actor information:\n"
+                        + format_str_dict_actor_for_logging(actor)
+                    )
+                    continue
         try:
             statement = (
                 pg_insert(CorActor)
@@ -283,7 +465,7 @@ def associate_actors(
         except IntegrityError as I:
             db.session.rollback()
             # TODO: uncomment following lines when work is done - commented to limit log while developping
-            log.error(
+            logger.error(
                 f"MTD - DB INTEGRITY ERROR - actor association failed for {type_mtd} with UUID '{uuid_mtd}' and following actor information:\n"
                 + format_sqlalchemy_error_for_logging(I)
                 + format_str_dict_actor_for_logging(actor)
@@ -360,17 +542,10 @@ class CasAuthentificationError(GeonatureApiError):
 
 
 def insert_user_and_org(info_user, update_user_organism: bool = True):
-    id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
-    idprov = AuthenficationCASINPN()
-    idprov.id_provider = id_provider_inpn
-    if id_provider_inpn not in auth_manager:
-        auth_manager.add_provider(id_provider_inpn, idprov)
-
     # if not id_provider_inpn in auth_manager:
     #     raise GeonatureApiError(
     #         f"Identity provider named {id_provider_inpn} is not registered ! "
     #     )
-    inpn_identity_provider = idprov
 
     organism_id = info_user["codeOrganisme"]
     organism_name = info_user.get("libelleLongOrganisme", "Autre")
@@ -380,7 +555,7 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
     try:
         assert user_id is not None and user_login is not None
     except AssertionError:
-        log.error("'CAS ERROR: no ID or LOGIN provided'")
+        logger.error("'CAS ERROR: no ID or LOGIN provided'")
         raise CasAuthentificationError("CAS ERROR: no ID or LOGIN provided", status_code=500)
 
     # Reconciliation avec base GeoNature
@@ -407,7 +582,7 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
     # Insert or update user
 
     with current_app.app_context():
-        user_info = inpn_identity_provider.insert_or_update_role(user_info, "email")
+        user_info = idprov.insert_or_update_role(user_info, "email")
 
     # Associate user to a default group if the user is not associated to any group
     user = existing_user or db.session.get(User, user_id)
