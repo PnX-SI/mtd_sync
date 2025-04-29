@@ -123,6 +123,11 @@ def sync_af(af):
     TAcquisitionFramework
         The updated or inserted acquisition framework.
     """
+    # TODO: handle case where af_uuid is None ; as will raise an error at database level when executing the statement below ;
+    #   af_uuid being None, i.e. af UUID is missing, could be due to no UUID specified in `<ca:identifiantCadre/>` tag in the XML file
+    #   Solutions - if UUID is missing:
+    #       - Just pass the sync of the AF
+    #       - Generate a UUID for the AF
     af_uuid = af["unique_acquisition_framework_id"]
 
     # Handle case where af_uuid is None, as it would raise an error at database level when executing the statement below.
