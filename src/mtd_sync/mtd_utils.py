@@ -279,7 +279,7 @@ def insert_user_and_org(info_user, update_user_organism: bool = True):
     id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
     idprov = AuthenficationCASINPN()
     idprov.id_provider = id_provider_inpn
-    auth_manager.add_provider(id_provider_inpn, idprov)
+    # auth_manager.add_provider(id_provider_inpn, idprov)
 
     # if not id_provider_inpn in auth_manager:
     #     raise GeonatureApiError(
