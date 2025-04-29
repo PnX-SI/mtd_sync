@@ -35,9 +35,7 @@ logger = logging.getLogger("MTD_SYNC")
 # config logger
 logger.setLevel(configuration_mtd["SYNC_LOG_LEVEL"])
 handler = logging.StreamHandler()
-formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)s : %(message)s", "%Y-%m-%d %H:%M:%S"
-)
+formatter = logging.Formatter("%(asctime)s | %(levelname)s : %(message)s", "%Y-%m-%d %H:%M:%S")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 # avoid logging output dupplication
@@ -71,7 +69,7 @@ class MTDInstanceApi:
     def _get_af_xml(self):
         return self._get_xml(self.af_path)
 
-    def get_af_list(self):
+    def get_af_list(self) -> list:
         xml = self._get_af_xml()
         _xml_parser = etree.XMLParser(ns_clean=True, recover=True, encoding="utf-8")
         root = etree.fromstring(xml, parser=_xml_parser)
@@ -84,7 +82,7 @@ class MTDInstanceApi:
     def _get_ds_xml(self):
         return self._get_xml(self.ds_path)
 
-    def get_ds_list(self):
+    def get_ds_list(self) -> list:
         xml = self._get_ds_xml()
         return parse_jdd_xml(xml)
 
@@ -167,7 +165,8 @@ class INPNCAS:
         url = urljoin(cls.base_url, cls.id_search_path)
         url = url.format(user_id=user_id)
         response = requests.get(url, auth=(cls.user, cls.password))
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
 
     @classmethod
     def get_user(cls, user_id):
@@ -188,11 +187,14 @@ def add_unexisting_digitizer(id_digitizer):
     ):
         # not fast - need perf optimization on user call
         user = INPNCAS.get_user(id_digitizer)
+        if not user:
+            return None
         # to avoid to create org
         if user.get("codeOrganisme"):
             user["codeOrganisme"] = None
         # insert or update user
         insert_user_and_org(user)
+        return user
 
 
 def process_af_and_ds(af_list, ds_list, id_role=None):
@@ -217,12 +219,19 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
             add_unexisting_digitizer(af["id_digitizer"] if not id_role else id_role)
             user_add_total_time += time.time() - start_add_user_time
         af = sync_af(af)
-        print(af)
+        # TODO: choose whether or not to commit retrieval of the AF before association of actors
+        #   and possibly retrieve an AF without any actor associated to it
+        db.session.commit()
+        # If the AF has not been retrieved, associated actors cannot be retrieved either
+        #   and thus we continue to the next AF
+        if not af:
+            continue
         associate_actors(
             actors,
             CorAcquisitionFrameworkActor,
             "id_acquisition_framework",
             af.id_acquisition_framework,
+            af.unique_acquisition_framework_id,
         )
         # TODO: remove actors removed from MTD
     db.session.commit()
@@ -239,7 +248,13 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
             user_add_total_time += time.time() - start_add_user_time
         ds = sync_ds(ds, list_cd_nomenclature)
         if ds is not None:
-            associate_actors(actors, CorDatasetActor, "id_dataset", ds.id_dataset)
+            associate_actors(
+                actors,
+                CorDatasetActor,
+                "id_dataset",
+                ds.id_dataset,
+                ds.unique_dataset_id,
+            )
 
     user_add_total_time = round(user_add_total_time, 2)
     db.session.commit()
