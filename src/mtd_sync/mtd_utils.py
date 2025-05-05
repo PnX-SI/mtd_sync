@@ -142,6 +142,9 @@ def sync_af(af):
     #       - Just pass the sync of the AF
     #       - Generate a UUID for the AF
     af_uuid = af["unique_acquisition_framework_id"]
+    name_af = af["acquisition_framework_name"]
+
+    logger.debug("MTD - PROCESSING AF WITH UUID '%s' AND NAME '%s'" % (af_uuid, name_af))
 
     # Handle case where af_uuid is None, as it would raise an error at database level when executing the statement below.
     #   None value for `af_uuid`, i.e. af UUID is missing, could be due to no UUID specified in `<ca:identifiantCadre/>` tag in the XML file.
