@@ -352,11 +352,15 @@ class CasAuthentificationError(GeonatureApiError):
 
 def insert_user_and_org(info_user, update_user_organism: bool = True):
     id_provider_inpn = current_app.config["MTD_SYNC"]["ID_PROVIDER_INPN"]
+    # TODO: use `auth_manager.get_provider(id_provider_inpn)` rather than instanciating from `AuthenficationCASINPN`
+    #   Make same modification in other parts of the code
     idprov = AuthenficationCASINPN()
     idprov.id_provider = id_provider_inpn
+    # TODO: remove two following lines - unnecessary
     if id_provider_inpn not in auth_manager:
         auth_manager.add_provider(id_provider_inpn, idprov)
 
+    # TODO: remove following section - unnecessary
     # if not id_provider_inpn in auth_manager:
     #     raise GeonatureApiError(
     #         f"Identity provider named {id_provider_inpn} is not registered ! "
