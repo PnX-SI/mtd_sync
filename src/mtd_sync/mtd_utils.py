@@ -21,7 +21,6 @@ from geonature.core.gn_meta.models import (
 )
 from geonature.core.gn_commons.models import TModules
 from pypnusershub.db.models import Organisme as BibOrganismes, User
-from geonature.core.users import routes as users
 from geonature.utils.errors import GeonatureApiError
 from pypnusershub.routes import insert_or_update_organism
 from pypnusershub.auth.providers.cas_inpn_provider import AuthenficationCASINPN
