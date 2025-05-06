@@ -23,7 +23,7 @@ from sqlalchemy import func, select
 from .mtd_utils import associate_actors, sync_af, sync_ds, insert_user_and_org
 from .xml_parser import (
     parse_acquisition_framework,
-    parse_acquisition_framwork_xml,
+    parse_single_acquisition_framework_xml,
     parse_jdd_xml,
 )
 
@@ -151,7 +151,7 @@ class MTDInstanceApi:
         url = urljoin(self.api_endpoint, self.single_af_path)
         url = url.format(ID_AF=af_uuid)
         xml = self._get_xml_by_url(url)
-        return parse_acquisition_framwork_xml(xml)
+        return parse_single_acquisition_framework_xml(xml)
 
 
 class INPNCAS:
