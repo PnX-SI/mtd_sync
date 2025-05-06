@@ -216,15 +216,14 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
         db.session.commit()
         # If the AF has not been retrieved, associated actors cannot be retrieved either
         #   and thus we continue to the next AF
-        if not af:
-            continue
-        associate_actors(
-            actors,
-            CorAcquisitionFrameworkActor,
-            "id_acquisition_framework",
-            af.id_acquisition_framework,
-            af.unique_acquisition_framework_id,
-        )
+        if af is not None:
+            associate_actors(
+                actors,
+                CorAcquisitionFrameworkActor,
+                "id_acquisition_framework",
+                af.id_acquisition_framework,
+                af.unique_acquisition_framework_id,
+            )
         # TODO: remove actors removed from MTD
     db.session.commit()
     logger.debug("MTD - PROCESS DS LIST")
