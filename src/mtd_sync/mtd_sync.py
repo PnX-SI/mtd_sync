@@ -296,10 +296,6 @@ def sync_af_and_ds_by_user(id_role, id_af=None):
     ds_list = mtd_api.get_ds_user_list()
 
     if not id_af:
-        # Get the unique UUIDs of the acquisition frameworks for the user
-        set_user_af_uuids = {ds["uuid_acquisition_framework"] for ds in ds_list}
-        user_af_uuids = list(set_user_af_uuids)
-
         # TODO - voir avec INPN pourquoi les AF par user ne sont pas dans l'appel global des AF
         # Ce code ne fonctionne pas pour cette raison -> AF manquants
         # af_list = mtd_api.get_af_list()
