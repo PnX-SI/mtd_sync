@@ -33,14 +33,19 @@ configuration_mtd = config["MTD_SYNC"]
 
 # create logger
 logger = logging.getLogger("MTD_SYNC")
+level_log_mtd_sync = configuration_mtd["SYNC_LOG_LEVEL"]
 # config logger
-logger.setLevel(configuration_mtd["SYNC_LOG_LEVEL"])
+logger.setLevel(level_log_mtd_sync)
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s | %(levelname)s : %(message)s", "%Y-%m-%d %H:%M:%S")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 # avoid logging output dupplication
 logger.propagate = False
+
+if level_log_mtd_sync == "DEBUG":
+    from sqlalchemy import exists
+    from geonature.core.gn_meta.models.datasets import TDatasets
 
 
 class MTDInstanceApi:
@@ -204,12 +209,30 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
     ).all()
     user_add_total_time = 0
     logger.debug("MTD - PROCESS AF LIST")
+    if level_log_mtd_sync == "DEBUG":
+        nb_af = len(af_list)
+        nb_ds = len(ds_list)
+        logger.debug(f"Number of AF to process : {nb_af}")
+        logger.debug(f"Number of DS to process : {nb_ds}")
+        nb_updated_af = 0
+        nb_updated_ds = 0
+        nb_retrieved_new_af = 0
+        nb_retrieved_new_ds = 0
     for af in af_list:
         actors = af.pop("actors")
         with db.session.begin_nested():
             start_add_user_time = time.time()
             add_unexisting_digitizer(af["id_digitizer"] if not id_role else id_role)
             user_add_total_time += time.time() - start_add_user_time
+        if level_log_mtd_sync == "DEBUG":
+            af_already_exists = db.session.scalar(
+                exists()
+                .where(
+                    TAcquisitionFramework.unique_acquisition_framework_id
+                    == af["unique_acquisition_framework_id"]
+                )
+                .select()
+            )
         af = sync_af(af)
         # TODO: choose whether or not to commit retrieval of the AF before association of actors
         #   and possibly retrieve an AF without any actor associated to it
@@ -217,6 +240,11 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
         # If the AF has not been retrieved, associated actors cannot be retrieved either
         #   and thus we continue to the next AF
         if af is not None:
+            if level_log_mtd_sync == "DEBUG":
+                if af_already_exists:
+                    nb_updated_af += 1
+                else:
+                    nb_retrieved_new_af += 1
             associate_actors(
                 actors,
                 CorAcquisitionFrameworkActor,
@@ -237,8 +265,21 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
             else:
                 add_unexisting_digitizer(id_role)
             user_add_total_time += time.time() - start_add_user_time
+        if level_log_mtd_sync == "DEBUG":
+            ds_already_exists = db.session.scalar(
+                exists()
+                .where(
+                    TDatasets.unique_dataset_id == ds["unique_dataset_id"],
+                )
+                .select()
+            )
         ds = sync_ds(ds, list_cd_nomenclature)
         if ds is not None:
+            if level_log_mtd_sync == "DEBUG":
+                if ds_already_exists:
+                    nb_updated_ds += 1
+                else:
+                    nb_retrieved_new_ds += 1
             associate_actors(
                 actors,
                 CorDatasetActor,
@@ -249,6 +290,16 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
 
     user_add_total_time = round(user_add_total_time, 2)
     db.session.commit()
+
+    if level_log_mtd_sync == "DEBUG":
+        nb_ds_not_retrieved_or_not_updated = nb_ds - nb_updated_ds - nb_retrieved_new_ds
+        logger.debug(
+            f"{nb_ds} DS processed : {nb_updated_ds} DS updated (including no change made) + {nb_retrieved_new_ds} new DS retrieved + {nb_ds_not_retrieved_or_not_updated} DS not retrieved or not updated"
+        )
+        nb_af_not_retrieved_or_not_updated = nb_af - nb_updated_af - nb_retrieved_new_af
+        logger.debug(
+            f"{nb_af} AF processed : {nb_updated_af} AF updated (including no change made) + {nb_retrieved_new_af} new AF retrieved + {nb_af_not_retrieved_or_not_updated} AF not retrieved or not updated"
+        )
 
 
 def sync_af_and_ds():
