@@ -66,6 +66,12 @@ def parse_actors_xml(actors):
     return actor_list
 
 
+# TODO: refactorize functions for XML parsing:
+#   - Rename function : `parse_jdd_xml` --> `parse_datasets_xml`
+#   - Add functions : `parse_dataset`
+#   - Eventually split into distinct functions the XML parsing and the mapping of fields
+
+
 def parse_acquisition_frameworks_xml(xml: str) -> list:
     """
     Parse an XML of acquisition frameworks from a string.
@@ -85,6 +91,8 @@ def parse_acquisition_frameworks_xml(xml: str) -> list:
     af_list = []
     id_instance_filter = current_app.config["MTD_SYNC"]["ID_INSTANCE_FILTER"]
     for af in af_iter:
+        # TODO: IMPORTANT - filter the list of acquisition frameworks with `ID_INSTANCE_FILTER` as made for the datasets in `parse_jdd_xml`
+        #   - Determine it is right to do so: is it possible that no ID_INSTANCE is set for an AF in the XML but still the AF is associated to the instance ?
         current_af, id_instance = parse_acquisition_framework(af)
         # Filter with id_instance
         if not id_instance_filter or id_instance_filter and id_instance == str(id_instance_filter):
@@ -192,9 +200,10 @@ def parse_jdd_xml(xml):
     for jdd in root.findall(".//" + namespace + "JeuDeDonnees"):
         # We extract all the required informations from the different tags of the XML file
         jdd_uuid = get_tag_content(jdd, "identifiantJdd")
+        # TODO: Check the following TODO
         # TODO: handle case where value for the tag `<jdd:identifiantCadre>` in the XML file is not of the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-        #   Solutions - if in the form `http://oafs.fr/meta/ca/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (has some entries for INPN MTD PREPROD and instance 'Nationale') :
-        #       - (retained) Format by keeping only the `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` part
+        #   Solutions - if in the form `http://oafs.fr/meta/ca/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (has some entries for INPN MTD PREPROD and instance 'Thématique') :
+        #       - (RETAINED) Format by keeping only the `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` part
         #       - Add a check further in the MTD sync to process only if ca_uuid is in the right format
         ca_uuid = format_acquisition_framework_id_from_xml(
             get_tag_content(jdd, "identifiantCadre")
