@@ -20,15 +20,16 @@ def synchronize_mtd():
     ]:
         from flask_login import current_user
 
-        params = request.json if request.is_json else request.args
-        try:
-            list_id_af = params.get("id_acquisition_frameworks", [])
-            for id_af in list_id_af:
-                sync_af_and_ds_by_user(id_role=current_user.id_role, id_af=id_af)
-            if not list_id_af:
-                sync_af_and_ds_by_user(id_role=current_user.id_role)
-        except Exception as e:
-            log.exception("Error while get JDD via MTD")
+        if current_user.is_authenticated:
+            params = request.json if request.is_json else request.args
+            try:
+                list_id_af = params.get("id_acquisition_frameworks", [])
+                for id_af in list_id_af:
+                    sync_af_and_ds_by_user(id_role=current_user.id_role, id_af=id_af)
+                if not list_id_af:
+                    sync_af_and_ds_by_user(id_role=current_user.id_role)
+            except Exception as e:
+                log.exception(f"Error while get JDD via MTD: {e}")
 
 
 @blueprint.cli.command()

@@ -179,7 +179,7 @@ def parse_jdd_xml(xml):
         Args:
             provided_af_uuid (str): The acquisition framework UUID
         Returns:
-            str | None: The formatted acquisition framework UUID, or None if none was provided
+            Union[str, None]: The formatted acquisition framework UUID, or None if none was provided
         """
         if not provided_af_uuid:
             return None
@@ -193,7 +193,7 @@ def parse_jdd_xml(xml):
         # We extract all the required informations from the different tags of the XML file
         jdd_uuid = get_tag_content(jdd, "identifiantJdd")
         # TODO: handle case where value for the tag `<jdd:identifiantCadre>` in the XML file is not of the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-        #   Solutions - if in the form `http://oafs.fr/meta/ca/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (has some entries for INPN MTD PREPROD and instance 'Nationale') :
+        #   Solutions - if in the form `http://oafs.fr/meta/ca/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (has some entries for INPN MTD PREPROD and instance 'Thématique') :
         #       - (retained) Format by keeping only the `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` part
         #       - Add a check further in the MTD sync to process only if ca_uuid is in the right format
         ca_uuid = format_acquisition_framework_id_from_xml(

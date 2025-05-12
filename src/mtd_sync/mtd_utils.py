@@ -156,7 +156,7 @@ def sync_af(af):
     #   If so, we skip the retrieval of the AF.
     if not af_uuid:
         logger.warning(
-            f"No UUID provided for the AF with UUID '{af_uuid}' - SKIPPING SYNCHRONIZATION FOR THIS AF."
+            f"No UUID provided for the AF with UUID '{af_uuid}' and name '{name_af}' - SKIPPING SYNCHRONIZATION FOR THIS AF."
         )
         return None
 
@@ -312,12 +312,13 @@ def associate_actors(
         # TODO: choose wether to:
         #   - (retained) Try to associate to an organism first and then to a user
         #   - Try to associate to a user first and then to an organism
+        # Try to associate to an organism first, and if that is impossible, to a user
         if id_organism:
             values["id_organism"] = id_organism
         # TODO: handle case where no user is retrieved for the actor email:
-        #   - (retained) Just do not try to associate the actor with the metadata
-        #   - Try to retrieve and id_organism from the organism name - field `organism`
-        #   - Try to retrieve and id_organism from the actor email considered as an organism email - field `email`
+        #   - (retained) If the actor role is "Contact Principal" associate to a new user with only a UUID and an ID, else just do not try to associate the actor with the metadata
+        #   - Try to retrieve an id_organism from the organism name - field `organism`
+        #   - Try to retrieve an id_organism from the actor email considered as an organism email - field `email`
         #   - Try to insert a new user from the actor name - field `name` - and possibly also email - field `email`
         else:
             id_user_from_email = DB.session.scalar(
