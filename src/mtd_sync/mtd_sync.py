@@ -231,6 +231,7 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
         af = sync_af(af)
         # TODO: choose whether or not to commit retrieval of the AF before association of actors
         #   and possibly retrieve an AF without any actor associated to it
+        # Commit here to retrieve the AF even if the association of actors that follows is to fail
         db.session.commit()
         # If the AF has not been retrieved, associated actors cannot be retrieved either
         #   and thus we continue to the next AF
