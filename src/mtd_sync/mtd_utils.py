@@ -26,6 +26,10 @@ from pypnusershub.routes import insert_or_update_organism
 from pypnusershub.auth.providers.cas_inpn_provider import AuthenficationCASINPN
 from pypnusershub.auth.auth_manager import auth_manager
 
+# /!\ DO NOT REMOVE FOLLOWING LINE OF IMPORT
+#   The following import is actually used,
+#    but from outside of the current file : https://github.com/PnX-SI/GeoNature/blob/c557d1d275c406805d44da1a6880006d5d452eef/backend/geonature/core/gn_meta/routes.py#L933
+from .mtd_webservice import get_acquisition_framework
 
 NOMENCLATURE_MAPPING = {
     "cd_nomenclature_data_type": "DATA_TYP",
