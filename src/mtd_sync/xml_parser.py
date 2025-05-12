@@ -179,7 +179,7 @@ def parse_jdd_xml(xml):
         Args:
             provided_af_uuid (str): The acquisition framework UUID
         Returns:
-            str | None: The formatted acquisition framework UUID, or None if none was provided
+            Union[str, None]: The formatted acquisition framework UUID, or None if none was provided
         """
         if not provided_af_uuid:
             return None

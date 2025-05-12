@@ -304,6 +304,7 @@ def associate_actors(
         # TODO: choose wether to:
         #   - (retained) Try to associate to an organism first and then to a user
         #   - Try to associate to a user first and then to an organism
+        # Try to associate to an organism first, and if that is impossible, to a user
         if id_organism:
             values["id_organism"] = id_organism
         # TODO: handle case where no user is retrieved for the actor email:
