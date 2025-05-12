@@ -21,7 +21,6 @@ from sqlalchemy import func, select
 
 from .mtd_utils import associate_actors, sync_af, sync_ds, insert_user_and_org
 from .xml_parser import (
-    parse_acquisition_framework,
     parse_single_acquisition_framework_xml,
     parse_jdd_xml,
     parse_acquisition_frameworks_xml,
