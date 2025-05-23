@@ -6,7 +6,7 @@ import logging
 
 from geonature.utils.env import db
 from pypnusershub.tests.utils import set_logged_user
-from sources.gn_module_mtd_sync.src.mtd_sync.mail_builder import MailBuilder
+from mtd_sync.mail_builder import MailBuilder
 
 logger = logging.getLogger(__name__)
 
