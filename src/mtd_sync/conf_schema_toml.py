@@ -14,3 +14,8 @@ class GnModuleSchemaConf(Schema):
     ID_PROVIDER_INPN = fields.String(load_default="cas_inpn")
     ID_USER_SOCLE_1 = fields.Integer(load_default=1)
     ID_USER_SOCLE_2 = fields.Integer(load_default=2)
+    MAIL_SUBJECT_AF_CLOSED_BASE = fields.String(load_default="")
+    MAIL_CONTENT_AF_CLOSED_ADDITION = fields.String(load_default="")
+    MAIL_CONTENT_AF_CLOSED_PDF = fields.String(load_default="")
+    MAIL_CONTENT_AF_CLOSED_URL = fields.String(load_default="")
+    MAIL_CONTENT_AF_CLOSED_GREETINGS = fields.String(load_default="")
