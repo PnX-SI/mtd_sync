@@ -10,8 +10,10 @@ from lxml import etree as ET
 from .mtd_webservice import get_acquisition_framework
 from .xml_parser import get_tag_content
 import geonature.utils.utilsmails as mail
+from geonature.utils.config import config
 
 logger = logging.getLogger()
+configuration_mtd = config["MTD_SYNC"]
 
 
 class MailBuilder:
@@ -50,7 +52,7 @@ class MailBuilder:
         mail_subject = (
             "Dépôt du cadre d'acquisition " + str(self.af.unique_acquisition_framework_id).upper()
         )
-        mail_subject_base = current_app.config["METADATA"]["MAIL_SUBJECT_AF_CLOSED_BASE"]
+        mail_subject_base = configuration_mtd["MAIL_SUBJECT_AF_CLOSED_BASE"]
         if mail_subject_base:
             mail_subject = mail_subject_base + " " + mail_subject
         if self.ca_idtps:
@@ -66,7 +68,7 @@ class MailBuilder:
             str(self.af.unique_acquisition_framework_id).upper()
         )
         self.xml_parser = ET.XMLParser(ns_clean=True, recover=True, encoding="utf-8")
-        namespace = current_app.config.get("XML_NAMESPACE", "{http://inpn.mnhn.fr/mtd}")
+        namespace = configuration_mtd.get("XML_NAMESPACE", "{http://inpn.mnhn.fr/mtd}")
         root = ET.fromstring(self.af_xml, parser=self.xml_parser)
         try:
             ca = root.find(".//" + namespace + "CadreAcquisition")
@@ -91,9 +93,9 @@ class MailBuilder:
            Le cadre d'acquisition <i> "{self.af.acquisition_framework_name}" </i> dont l’identifiant est
            "{str(self.af.unique_acquisition_framework_id).upper()}" que vous nous avez transmis a été déposé"""
 
-        mail_content_additions = current_app.config["METADATA"]["MAIL_CONTENT_AF_CLOSED_ADDITION"]
-        mail_content_pdf = current_app.config["METADATA"]["MAIL_CONTENT_AF_CLOSED_PDF"]
-        mail_content_greetings = current_app.config["METADATA"]["MAIL_CONTENT_AF_CLOSED_GREETINGS"]
+        mail_content_additions = configuration_mtd["MAIL_CONTENT_AF_CLOSED_ADDITION"]
+        mail_content_pdf = configuration_mtd["MAIL_CONTENT_AF_CLOSED_PDF"]
+        mail_content_greetings = configuration_mtd["MAIL_CONTENT_AF_CLOSED_GREETINGS"]
 
         if self.ca_idtps:
             mail_content = mail_content + f"dans le cadre du dossier {self.ca_idtps}"
