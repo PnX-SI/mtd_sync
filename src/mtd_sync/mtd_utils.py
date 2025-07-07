@@ -254,9 +254,17 @@ def associate_actors(
     for actor in actors:
         id_organism = None
         uuid_organism = actor["uuid_organism"]
-        organism_name = actor["organism"]
+        organism_name = actor.get("organism", None)
         email_actor = actor["email"]
         if uuid_organism:
+            if not organism_name:
+                logger.warning(
+                    f"MTD - actor association impossible for {type_mtd} with UUID '{uuid_mtd}'"
+                    f" because the actor has no organism name specified while having a organism UUID specified, which is abnormal"
+                    f" - with the following actor information:"
+                    f"\n" + format_str_dict_actor_for_logging(actor)
+                )
+                continue
             with DB.session.begin_nested():
                 # create or update organisme
                 # FIXME: prevent update of organism email from actor email ! Several actors may be associated to the same organism and still have different mails !
