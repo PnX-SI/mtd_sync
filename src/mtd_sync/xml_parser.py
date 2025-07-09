@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from typing import Union
 
 from flask import current_app
@@ -12,6 +13,9 @@ from geonature.core.gn_meta.models import TAcquisitionFramework
 namespace = config["MTD_SYNC"]["XML_NAMESPACE"]
 
 _xml_parser = ET.XMLParser(ns_clean=True, recover=True, encoding="utf-8")
+
+# Get the logger instance "MTD_SYNC"
+logger = logging.getLogger("MTD_SYNC")
 
 
 def get_tag_content(parent, tag_name, default_value=None):
@@ -62,7 +66,33 @@ def parse_actors_xml(actors):
     return actor_list
 
 
-def parse_acquisition_framwork_xml(xml):
+def parse_acquisition_frameworks_xml(xml: str) -> list:
+    """
+    Parse an XML of acquisition frameworks from a string.
+
+    Parameters
+    ----------
+    xml : str
+        The XML of acquisition frameworks
+
+    Returns
+    -------
+    af_list : list
+        A list of dict with each dict representing a parsed acquisition framework from the XML
+    """
+    root = ET.fromstring(xml, parser=_xml_parser)
+    af_iter = root.iterfind(".//{http://inpn.mnhn.fr/mtd}CadreAcquisition")
+    af_list = []
+    id_instance_filter = current_app.config["MTD_SYNC"]["ID_INSTANCE_FILTER"]
+    for af in af_iter:
+        current_af, id_instance = parse_acquisition_framework(af)
+        # Filter with id_instance
+        if not id_instance_filter or id_instance_filter and id_instance == str(id_instance_filter):
+            af_list.append(current_af)
+    return af_list
+
+
+def parse_single_acquisition_framework_xml(xml):
     """
     Parse an xml of AF from a string
     Return:
@@ -70,7 +100,8 @@ def parse_acquisition_framwork_xml(xml):
     """
     root = ET.fromstring(xml, parser=_xml_parser)
     ca = root.find(".//" + namespace + "CadreAcquisition")
-    return parse_acquisition_framework(ca)
+    parsed_af, _ = parse_acquisition_framework(ca)
+    return parsed_af
 
 
 def parse_acquisition_framework(ca):
@@ -89,12 +120,20 @@ def parse_acquisition_framework(ca):
     )
     ca_end_date = get_tag_content(date_info, "dateCloture")
     ca_id_digitizer = None
+    id_instance = None
     attributs_additionnels_node = ca.find(namespace + "attributsAdditionnels")
-
-    # We extract the ID of the user to assign it the JDD as an id_digitizer
     for attr in attributs_additionnels_node:
+        # We extract the ID of the user to assign it the JDD as an id_digitizer
         if get_tag_content(attr, "nomAttribut") == "ID_CREATEUR":
             ca_id_digitizer = get_tag_content(attr, "valeurAttribut")
+        # We extract the ID of the instance, to possibly further filter it if not associated to the configured instance
+        if get_tag_content(attr, "nomAttribut") == "ID_INSTANCE":
+            id_instance = get_tag_content(attr, "valeurAttribut")
+    # Log a warning message if no ID_INSTANCE is found
+    if id_instance is None:
+        logger.warning(
+            f"MTD - No ID_INSTANCE found for the AF with UUID '{ca_uuid}' and name '{ca_name}' - this AF will not be retrieved if an ID_INSTANCE_FILTER is configured"
+        )
 
     # We search for all the Contact nodes :
     # - Main contact in acteurPrincipal node
@@ -119,7 +158,7 @@ def parse_acquisition_framework(ca):
         "meta_update_date": ca_update_date,
         "id_digitizer": ca_id_digitizer,
         "actors": all_actors,
-    }
+    }, id_instance
 
 
 def parse_jdd_xml(xml):
@@ -140,7 +179,7 @@ def parse_jdd_xml(xml):
         Args:
             provided_af_uuid (str): The acquisition framework UUID
         Returns:
-            str | None: The formatted acquisition framework UUID, or None if none was provided
+            Union[str, None]: The formatted acquisition framework UUID, or None if none was provided
         """
         if not provided_af_uuid:
             return None
@@ -154,7 +193,7 @@ def parse_jdd_xml(xml):
         # We extract all the required informations from the different tags of the XML file
         jdd_uuid = get_tag_content(jdd, "identifiantJdd")
         # TODO: handle case where value for the tag `<jdd:identifiantCadre>` in the XML file is not of the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-        #   Solutions - if in the form `http://oafs.fr/meta/ca/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (has some entries for INPN MTD PREPROD and instance 'Nationale') :
+        #   Solutions - if in the form `http://oafs.fr/meta/ca/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (has some entries for INPN MTD PREPROD and instance 'Thématique') :
         #       - (retained) Format by keeping only the `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` part
         #       - Add a check further in the MTD sync to process only if ca_uuid is in the right format
         ca_uuid = format_acquisition_framework_id_from_xml(
@@ -213,7 +252,7 @@ def parse_jdd_xml(xml):
             "unique_dataset_id": jdd_uuid,
             "uuid_acquisition_framework": ca_uuid,
             "dataset_name": (
-                dataset_name if len(dataset_name) < 256 else f"{dataset_name[:253]}..."
+                dataset_name if len(dataset_name) < 256 else f"{dataset_name[:252]}..."
             ),
             "dataset_shortname": dataset_shortname,
             "dataset_desc": (
