@@ -20,6 +20,10 @@ class MailBuilder:
     def __init__(self, acquisition_framework):
         """
         Build a mail from an acquisition framework
+
+        Parameters
+        ----------
+        acquisition_framework
         """
         self.af = acquisition_framework
         self.ca_idtps = self._get_ca_idtps()
@@ -34,7 +38,7 @@ class MailBuilder:
 
     def send_mail(self) -> None:
         """
-        Send the built mail  only if, subjects, content and recipients are set.
+        Send the built mail only if, subjects, content and recipients are set.
         """
         if self.subject and self.content and len(self.recipients) > 0:
             mail.send_mail(**self.mail)
@@ -45,9 +49,13 @@ class MailBuilder:
                 f"[{self.recipients}]"
             )
 
-    def _build_subject(self):
+    def _build_subject(self) -> str:
         """
         Fill the subject of the mail
+
+        Returns
+        -------
+        mail subject
         """
         mail_subject = (
             "Dépôt du cadre d'acquisition " + str(self.af.unique_acquisition_framework_id).upper()
@@ -62,6 +70,10 @@ class MailBuilder:
     def _get_ca_idtps(self) -> str:
         """
         Get a parameter of xml call idTPS. If empty return empty string
+
+        Returns
+        -------
+        idTPS
         """
         # Parsing the AF XML from MTD to get the idTPS parameter
         self.af_xml = get_acquisition_framework(
@@ -80,6 +92,10 @@ class MailBuilder:
     def _build_content(self) -> str:
         """
         Build the content of the mail from AF information
+
+        Returns
+        -------
+        mail content
         """
         # Generate the links for the AF's deposite certificate and framework download
         pdf_url = (
@@ -111,6 +127,10 @@ class MailBuilder:
     def _build_recipient(self) -> set[str]:
         """
         Create the recipients of the mail. If the publisher is the the AF digitizer, we send a mail to both of them
+
+        Returns
+        -------
+        set of recipîents
         """
         mail_recipients = set()
         cur_user = g.current_user
