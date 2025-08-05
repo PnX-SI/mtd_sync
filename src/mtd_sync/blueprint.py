@@ -7,6 +7,7 @@ from geonature.utils.errors import GeoNatureError
 from geonature.core.gn_permissions import decorators as permissions
 from utils_flask_sqla.response import json_resp
 from .mail_builder import MailBuilder
+import mtd_sync.tasks  # noqa: F401
 
 log = logging.getLogger()
 blueprint = Blueprint("mtd_sync", __name__)

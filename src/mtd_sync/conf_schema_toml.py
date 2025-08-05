@@ -19,3 +19,4 @@ class GnModuleSchemaConf(Schema):
     MAIL_CONTENT_AF_CLOSED_PDF = fields.String(load_default="")
     MAIL_CONTENT_AF_CLOSED_URL = fields.String(load_default="")
     MAIL_CONTENT_AF_CLOSED_GREETINGS = fields.String(load_default="")
+    MTD_SYNC_CRONTAB = fields.String(load_default="0 1 * * *")
