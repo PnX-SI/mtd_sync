@@ -1,12 +1,19 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from flask import url_for, g
 import logging
 
+from sqlalchemy import select, func
+
+from geonature.core.gn_meta.models import TAcquisitionFramework, TDatasets
 from geonature.utils.env import db
+from mtd_sync.mtd_sync import sync_af_and_ds
+
 from pypnusershub.tests.utils import set_logged_user
 from mtd_sync.mail_builder import MailBuilder
+from pypnusershub.db import db, models
 
 logger = logging.getLogger(__name__)
 
@@ -95,3 +102,63 @@ class TestMail:
         )
         assert "af_1" in mail_builder.mail["msg_html"]
         assert str(af.unique_acquisition_framework_id).upper() in mail_builder.mail["msg_html"]
+
+
+@pytest.mark.usefixtures("client_class", "temporary_transaction")
+class TestSync:
+    @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_ds_xml")
+    @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_af_xml")
+    @patch("mtd_sync.mtd_sync.add_unexisting_digitizer")
+    def test_sync_af_and_ds_with_local_files(self, mock_add_digitize, mock_af, mock_ds, app):
+        """
+        Test the sync_af_and_ds function by mocking API calls
+        using local files to simulate API responses.
+        """
+        fixture_dir = Path(__file__).parent / "fixtures"
+
+        def custom_mock_add_digitizer(id_digitizer):
+            if db.session.execute(db.select(models.User).filter_by(id_role=id_digitizer)).scalar():
+                return
+            user_ = models.User(
+                **{
+                    "id_role": id_digitizer,
+                    "identifiant": id_digitizer,
+                    "nom_role": id_digitizer,
+                    "email": f"{id_digitizer}@test.fr",
+                }
+            )
+            db.session.add(user_)
+            db.session.commit()
+
+        initial_af_count_statement = select(func.count()).select_from(TAcquisitionFramework)
+        initial_af_count = db.session.scalar(initial_af_count_statement)
+        initial_ds_count_statement = select(func.count()).select_from(TDatasets)
+        initial_ds_count = db.session.scalar(initial_ds_count_statement)
+        print(f"Nombre d'entrées af initial : {initial_af_count}")
+        print(f"Nombre d'entrées ds initial: {initial_ds_count}")
+
+        mock_add_digitize.side_effect = custom_mock_add_digitizer
+
+        # So we don't call CAS API
+        mock_add_digitize.return_value = None
+        with open(fixture_dir / "mock_af_data.xml", "rb") as f:
+            mock_af.return_value = f.read()
+        with open(fixture_dir / "mock_ds_data.xml", "rb") as f:
+            mock_ds.return_value = f.read()
+        # So we don't take into account the instance id
+        app.config["MTD_SYNC"]["ID_INSTANCE_FILTER"] = None
+        sync_af_and_ds()
+        assert mock_af.called, "The mock af was not called"
+        assert mock_ds.called, "The mock ds was not called"
+        af_count_statement = select(func.count()).select_from(TAcquisitionFramework)
+        af_count = db.session.scalar(af_count_statement)
+        ds_count_statement = select(func.count()).select_from(TDatasets)
+        ds_count = db.session.scalar(ds_count_statement)
+        print(f"Nombre d'entrées af final : {af_count}")
+        print(f"Nombre d'entrées ds final: {ds_count}")
+        assert af_count > initial_af_count
+        assert ds_count > initial_ds_count
+
+        if not initial_af_count and not initial_ds_count:
+            assert af_count == 312
+            assert ds_count == 583

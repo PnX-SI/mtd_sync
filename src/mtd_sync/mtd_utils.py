@@ -50,8 +50,12 @@ def sync_ds(ds, cd_nomenclatures):
     :param ds: <dict> DS infos
     :param cd_nomenclatures: <array> cd_nomenclature from ref_normenclatures.t_nomenclatures
     """
-
     uuid_ds = ds["unique_dataset_id"]
+    if not uuid_ds:
+        logger.error(
+            Exception(f"The following dataset had no unique dataset id, we can't process it {ds}")
+        )
+        return None
     name_ds = ds["dataset_name"]
 
     logger.debug("MTD - PROCESSING DS WITH UUID '%s' AND NAME '%s'" % (uuid_ds, name_ds))
@@ -66,7 +70,7 @@ def sync_ds(ds, cd_nomenclatures):
         logger.warning(
             f"MTD - Nomenclature with code '{ds_cd_nomenclature_data_origin}' not found in database - SKIPPING SYNCHRONIZATION OF DATASET WITH UUID '{uuid_ds}' AND NAME '{name_ds}'"
         )
-        return
+        return None
 
     # CONTROL AF
     af_uuid = ds.pop("uuid_acquisition_framework")
@@ -82,7 +86,7 @@ def sync_ds(ds, cd_nomenclatures):
         logger.warning(
             f"MTD - AF with UUID '{af_uuid}' not found in database - SKIPPING SYNCHRONIZATION OF DATASET WITH UUID '{uuid_ds}' AND NAME '{name_ds}'"
         )
-        return
+        return None
 
     ds["id_acquisition_framework"] = af.id_acquisition_framework
     ds = {
