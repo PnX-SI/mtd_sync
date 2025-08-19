@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:ca="http://inpn.mnhn.fr/mtd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" gml:id="ID_0" xsi:schemaLocation="http://inpn.mnhn.fr/mtd mtd_CA_1_3_10.xsd">
+    <gml:featureMember>
+        <ca:CadreAcquisition gml:id="ID_95">
+            <ca:identifiantCadre>4A9DDA1F-B623-3E13-E053-2614A8C02B7C</ca:identifiantCadre>
+            <ca:libelle>Données du Parc national des Pyrénées</ca:libelle>
+            <ca:description>null</ca:description>
+            <ca:estMetaCadre>false</ca:estMetaCadre>
+            <ca:idMetaCadreParent>4A9DDA1F-B68B-3E13-E053-2614A8C02B7C</ca:idMetaCadreParent>
+            <ca:acteurPrincipal>
+                <ca:ActeurType>
+                    <ca:mail/>
+                    <ca:nomPrenom>test tititoto</ca:nomPrenom>
+                    <ca:roleActeur>1</ca:roleActeur>
+                </ca:ActeurType>
+            </ca:acteurPrincipal>
+            <ca:typeFinancement/>
+            <ca:ReferenceTemporelle>
+                <ca:dateLancement/>
+            </ca:ReferenceTemporelle>
+            <ca:objectif>7</ca:objectif>
+            <ca:niveauTerritorial>5</ca:niveauTerritorial>
+            <ca:territoire>METROP</ca:territoire>
+            <ca:precisionGeographique/>
+            <ca:cibleEcologiqueOuGeologique/>
+            <ca:descriptionCible>Amphibiens, Reptiles,Mammifères,Flore,Faune, Flore, Fonge,Faune</ca:descriptionCible>
+            <ca:dateCreationMtd>1900-01-01</ca:dateCreationMtd>
+            <ca:dateMiseAJourMtd>2017-03-30</ca:dateMiseAJourMtd>
+            <ca:voletSINP>1</ca:voletSINP>
+            <ca:attributsAdditionnels>
+                <ca:AttributAdditionnel>
+                    <ca:valeurAttribut>2</ca:valeurAttribut>
+                    <ca:definitionAttribut/>
+                    <ca:nomAttribut>ID_INSTANCE</ca:nomAttribut>
+                </ca:AttributAdditionnel>
+                <ca:AttributAdditionnel>
+                    <ca:valeurAttribut>2</ca:valeurAttribut>
+                    <ca:definitionAttribut/>
+                    <ca:nomAttribut>ID_PLATEFORME</ca:nomAttribut>
+                </ca:AttributAdditionnel>
+            </ca:attributsAdditionnels>
+        </ca:CadreAcquisition>
+            </gml:featureMember>
+</gml:FeatureCollection>

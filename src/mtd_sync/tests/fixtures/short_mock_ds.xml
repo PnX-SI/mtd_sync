@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:jdd="http://inpn.mnhn.fr/mtd"
+                       xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       gml:id="ID_0" xsi:schemaLocation="http://inpn.mnhn.fr mtd_jdd_1_3_10.xsd">
+    <gml:featureMember>
+        <jdd:JeuDeDonnees gml:id="ID_75">
+            <jdd:identifiantJdd>4A9DDA1F-B713-3E13-E053-2614A8C02B7C</jdd:identifiantJdd>
+            <jdd:identifiantCadre>4A9DDA1F-B623-3E13-E053-2614A8C02B7C</jdd:identifiantCadre>
+            <jdd:libelle>Programme Ecoscope: données d'observations des écosystèmes marins exploités (Réunion)
+            </jdd:libelle>
+            <jdd:libelleCourt>Ecoscope-Réunion</jdd:libelleCourt>
+            <jdd:description>Le projet Ecoscope a débuté en 2005 et l’intégration des différentes séries de données
+                produites par les partenaires du projet est en cours de réalisation. Cette base de connaissance a
+                vocation à accueillir d’autres séries de données dans les années à venir. La même base va donc réunir
+                des observations collectées dans des contextes différents.
+            </jdd:description>
+            <jdd:typeDonnees>5</jdd:typeDonnees>
+            <jdd:typeDonneesCollectees/>
+            <jdd:domaineMarin>true</jdd:domaineMarin>
+            <jdd:domaineTerrestre>false</jdd:domaineTerrestre>
+            <jdd:territoire>REU</jdd:territoire>
+            <jdd:pointContactJdd>
+                <jdd:ActeurType>
+                    <jdd:mail>julien.barde@ird.fr</jdd:mail>
+                    <jdd:nomPrenom>J. Barde</jdd:nomPrenom>
+                    <jdd:roleActeur>5</jdd:roleActeur>
+                    <jdd:organisme>IRD-Sète</jdd:organisme>
+                </jdd:ActeurType>
+            </jdd:pointContactJdd>
+            <jdd:empriseGeographique>
+                <jdd:BoundingBox>
+                    <jdd:borneNord>-19.75458</jdd:borneNord>
+                    <jdd:borneSud>-23.99374</jdd:borneSud>
+                    <jdd:borneEst>56.66173</jdd:borneEst>
+                    <jdd:borneOuest>52.34395</jdd:borneOuest>
+                </jdd:BoundingBox>
+            </jdd:empriseGeographique>
+            <jdd:BaseProduction>
+                <jdd:baseProduction/>
+            </jdd:BaseProduction>
+            <jdd:dateCreation>2013-12-03</jdd:dateCreation>
+            <jdd:dateRevision>2013-12-03</jdd:dateRevision>
+            <jdd:pointContactPF>
+                <jdd:ActeurType>
+                    <jdd:mail>jdemazieres@mnhn.fr</jdd:mail>
+                    <jdd:nomPrenom>Jeanne de Mazières</jdd:nomPrenom>
+                    <jdd:roleActeur>1</jdd:roleActeur>
+                    <jdd:organisme/>
+                </jdd:ActeurType>
+            </jdd:pointContactPF>
+            <jdd:attributsAdditionnels>
+                <jdd:AttributAdditionnel>
+                    <jdd:valeurAttribut>922</jdd:valeurAttribut>
+                    <jdd:definitionAttribut/>
+                    <jdd:nomAttribut>ID_CREATEUR</jdd:nomAttribut>
+                </jdd:AttributAdditionnel>
+                <jdd:AttributAdditionnel>
+                    <jdd:valeurAttribut>2</jdd:valeurAttribut>
+                    <jdd:definitionAttribut/>
+                    <jdd:nomAttribut>ID_INSTANCE</jdd:nomAttribut>
+                </jdd:AttributAdditionnel>
+            </jdd:attributsAdditionnels>
+        </jdd:JeuDeDonnees>
+    </gml:featureMember>
+</gml:FeatureCollection>

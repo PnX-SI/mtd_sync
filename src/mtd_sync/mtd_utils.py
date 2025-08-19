@@ -226,6 +226,21 @@ def add_or_update_organism(uuid, nom, email):
     return DB.session.execute(statement).scalar()
 
 
+def get_or_create_empty_mail_user() -> User:
+    if user_without_mail := User.query.filter_by(identifiant="user_without_email").first():
+        return user_without_mail
+    user_without_mail = User(
+        identifiant="user_without_email",
+        nom_role="Utilisateur sans email",
+        prenom_role="Utilisateur sans email",
+        email=None,
+        active=True,
+    )
+    db.session.add(user_without_mail)
+    db.session.commit()
+    return user_without_mail
+
+
 def associate_actors(
     actors,
     CorActor: Union[CorAcquisitionFrameworkActor, CorDatasetActor],
@@ -325,9 +340,12 @@ def associate_actors(
         #   - Try to retrieve an id_organism from the actor email considered as an organism email - field `email`
         #   - Try to insert a new user from the actor name - field `name` - and possibly also email - field `email`
         else:
-            id_user_from_email = DB.session.scalar(
-                select(User.id_role).filter_by(email=email_actor).where(User.groupe.is_(False))
-            )
+            if not email_actor:
+                id_user_from_email = get_or_create_empty_mail_user().id_role
+            else:
+                id_user_from_email = DB.session.scalar(
+                    select(User.id_role).filter_by(email=email_actor).where(User.groupe.is_(False))
+                )
             if id_user_from_email:
                 values["id_role"] = id_user_from_email
             else:

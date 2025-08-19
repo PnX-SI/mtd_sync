@@ -13,7 +13,8 @@ from mtd_sync.mtd_sync import sync_af_and_ds
 
 from pypnusershub.tests.utils import set_logged_user
 from mtd_sync.mail_builder import MailBuilder
-from pypnusershub.db import db, models
+from pypnusershub.db import db, models, User
+from mtd_sync.mtd_utils import get_or_create_empty_mail_user
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,35 @@ class TestMail:
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
 class TestSync:
+    fixture_dir = Path(__file__).parent / "fixtures"
+
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_test_sync(self, app):
+        # So we don't take into account the instance id
+        app.config["MTD_SYNC"]["ID_INSTANCE_FILTER"] = None
+
+    def get_af_ds(self, af_file_name: str, ds_file_name: str) -> tuple[bytes, bytes]:
+        with open(self.fixture_dir / af_file_name, "rb") as f:
+            af_xml = f.read()
+        with open(self.fixture_dir / ds_file_name, "rb") as f:
+            ds_xml = f.read()
+        return af_xml, ds_xml
+
+    @staticmethod
+    def custom_mock_add_digitizer(id_digitizer):
+        if db.session.execute(db.select(models.User).filter_by(id_role=id_digitizer)).scalar():
+            return
+        user_ = models.User(
+            **{
+                "id_role": id_digitizer,
+                "identifiant": id_digitizer,
+                "nom_role": id_digitizer,
+                "email": f"{id_digitizer}@test.fr",
+            }
+        )
+        db.session.add(user_)
+        db.session.commit()
+
     @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_ds_xml")
     @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_af_xml")
     @patch("mtd_sync.mtd_sync.add_unexisting_digitizer")
@@ -114,39 +144,16 @@ class TestSync:
         Test the sync_af_and_ds function by mocking API calls
         using local files to simulate API responses.
         """
-        fixture_dir = Path(__file__).parent / "fixtures"
-
-        def custom_mock_add_digitizer(id_digitizer):
-            if db.session.execute(db.select(models.User).filter_by(id_role=id_digitizer)).scalar():
-                return
-            user_ = models.User(
-                **{
-                    "id_role": id_digitizer,
-                    "identifiant": id_digitizer,
-                    "nom_role": id_digitizer,
-                    "email": f"{id_digitizer}@test.fr",
-                }
-            )
-            db.session.add(user_)
-            db.session.commit()
 
         initial_af_count_statement = select(func.count()).select_from(TAcquisitionFramework)
         initial_af_count = db.session.scalar(initial_af_count_statement)
         initial_ds_count_statement = select(func.count()).select_from(TDatasets)
         initial_ds_count = db.session.scalar(initial_ds_count_statement)
-        print(f"Nombre d'entrées af initial : {initial_af_count}")
-        print(f"Nombre d'entrées ds initial: {initial_ds_count}")
 
-        mock_add_digitize.side_effect = custom_mock_add_digitizer
-
-        # So we don't call CAS API
-        mock_add_digitize.return_value = None
-        with open(fixture_dir / "mock_af_data.xml", "rb") as f:
-            mock_af.return_value = f.read()
-        with open(fixture_dir / "mock_ds_data.xml", "rb") as f:
-            mock_ds.return_value = f.read()
-        # So we don't take into account the instance id
-        app.config["MTD_SYNC"]["ID_INSTANCE_FILTER"] = None
+        mock_add_digitize.side_effect = self.custom_mock_add_digitizer
+        mock_af.return_value, mock_ds.return_value = self.get_af_ds(
+            "mock_af_data.xml", "mock_ds_data.xml"
+        )
         sync_af_and_ds()
         assert mock_af.called, "The mock af was not called"
         assert mock_ds.called, "The mock ds was not called"
@@ -154,11 +161,28 @@ class TestSync:
         af_count = db.session.scalar(af_count_statement)
         ds_count_statement = select(func.count()).select_from(TDatasets)
         ds_count = db.session.scalar(ds_count_statement)
-        print(f"Nombre d'entrées af final : {af_count}")
-        print(f"Nombre d'entrées ds final: {ds_count}")
         assert af_count > initial_af_count
         assert ds_count > initial_ds_count
-
+        # Here we do a full test when database had no af/ds previously
         if not initial_af_count and not initial_ds_count:
             assert af_count == 312
             assert ds_count == 583
+
+    @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_ds_xml")
+    @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_af_xml")
+    @patch("mtd_sync.mtd_sync.add_unexisting_digitizer")
+    def test_sync_af_empty_mail(self, mock_add_digitize, mock_af, mock_ds, app):
+        mock_add_digitize.side_effect = self.custom_mock_add_digitizer
+        mock_add_digitize.side_effect = self.custom_mock_add_digitizer
+        mock_af.return_value, mock_ds.return_value = self.get_af_ds(
+            "mock_af_without_mail.xml", "short_mock_ds.xml"
+        )
+        sync_af_and_ds()
+        af_statement = select(TAcquisitionFramework).filter_by(
+            unique_acquisition_framework_id="4A9DDA1F-B623-3E13-E053-2614A8C02B7C"
+        )
+        acquisition_framework: TAcquisitionFramework = db.session.execute(af_statement).scalar()
+        cor_actor = acquisition_framework.cor_af_actor[0]
+        actor = db.session.scalar(select(User).where(User.id_role == cor_actor.id_role))
+        expected_actor = get_or_create_empty_mail_user()
+        assert actor.identifiant == expected_actor.identifiant
