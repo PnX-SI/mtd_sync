@@ -227,6 +227,15 @@ def add_or_update_organism(uuid, nom, email):
 
 
 def get_or_create_empty_mail_user() -> User:
+    """
+    Retrieves or creates a user with the identifier "user_without_email". If the user already exists in the
+    database, it is returned. Otherwise, a new user is created with the corresponding attributes, added to
+    the database, and then returned.
+
+    Returns:
+        User: The user instance either retrieved or newly created.
+
+    """
     if user_without_mail := User.query.filter_by(identifiant="user_without_email").first():
         return user_without_mail
     user_without_mail = User(
@@ -239,6 +248,35 @@ def get_or_create_empty_mail_user() -> User:
     db.session.add(user_without_mail)
     db.session.commit()
     return user_without_mail
+
+
+def delete_existing_cor_actor(
+    CorActor: Union[CorAcquisitionFrameworkActor, CorDatasetActor],
+    pk_name: Literal["id_acquisition_framework", "id_dataset"],
+    pk_value: str,
+    id_nomenclature_actor_role: int,
+):
+    """
+    Deletes an existing correlation between actor and af from the database.
+
+    This function removes all correspondance wich match the same actor role and the same AF.
+
+    CorActor :
+        the SQLAlchemy model corresponding to the destination table
+        effectively CorAcquisitionFrameworkActor or CorDatasetActor
+    pk_name :
+        pk attribute name:
+        - 'id_acquisition_framework' for AF
+        - 'id_dataset' for DS
+    pk_value :
+        pk value: ID of the AF or DS
+    id_nomenclature_actor_role :
+        The ID of the nomenclature actor role associated with the actor to be deleted.
+    """
+    db.session.query(CorActor).filter_by(**{pk_name: pk_value}).filter(
+        CorActor.id_nomenclature_actor_role == id_nomenclature_actor_role
+    ).delete(synchronize_session="fetch")
+    db.session.commit()
 
 
 def associate_actors(
@@ -334,11 +372,6 @@ def associate_actors(
         # Try to associate to an organism first, and if that is impossible, to a user
         if id_organism:
             values["id_organism"] = id_organism
-        # TODO: handle case where no user is retrieved for the actor email:
-        #   - (retained) If the actor role is "Contact Principal" associate to a new user with only a UUID and an ID, else just do not try to associate the actor with the metadata
-        #   - Try to retrieve an id_organism from the organism name - field `organism`
-        #   - Try to retrieve an id_organism from the actor email considered as an organism email - field `email`
-        #   - Try to insert a new user from the actor name - field `name` - and possibly also email - field `email`
         else:
             if not email_actor:
                 id_user_from_email = get_or_create_empty_mail_user().id_role
@@ -407,6 +440,7 @@ def associate_actors(
                     )
                     continue
         try:
+            delete_existing_cor_actor(CorActor, pk_name, pk_value, id_nomenclature_actor_role)
             statement = (
                 pg_insert(CorActor)
                 .values(**values)
