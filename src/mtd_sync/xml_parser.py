@@ -119,6 +119,7 @@ def parse_acquisition_framework(ca):
         date_info, "dateLancement", default_value=datetime.datetime.now()
     )
     ca_end_date = get_tag_content(date_info, "dateCloture")
+    objectif = get_tag_content(ca, "objectif")
     ca_id_digitizer = None
     id_instance = None
     attributs_additionnels_node = ca.find(namespace + "attributsAdditionnels")
@@ -129,6 +130,7 @@ def parse_acquisition_framework(ca):
         # We extract the ID of the instance, to possibly further filter it if not associated to the configured instance
         if get_tag_content(attr, "nomAttribut") == "ID_INSTANCE":
             id_instance = get_tag_content(attr, "valeurAttribut")
+
     # Log a warning message if no ID_INSTANCE is found
     if id_instance is None:
         logger.warning(
@@ -158,6 +160,7 @@ def parse_acquisition_framework(ca):
         "meta_update_date": ca_update_date,
         "id_digitizer": ca_id_digitizer,
         "actors": all_actors,
+        "objectif": objectif,
     }, id_instance
 
 

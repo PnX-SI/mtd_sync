@@ -325,3 +325,77 @@ class TestSync:
             if actor.id_nomenclature_actor_role == nomenclature.id_nomenclature:
                 main_contacts.append(actor)
         return main_contacts
+
+    @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_ds_xml")
+    @patch("mtd_sync.mtd_sync.MTDInstanceApi._get_af_xml")
+    @patch("mtd_sync.mtd_sync.add_unexisting_digitizer")
+    def test_sync_objectif(self, mock_add_digitize, mock_af, mock_ds, app) -> None:
+        """
+        Test actor replacement on AF update. We wan't to make sure that it replace the actor and not add it
+
+        Parameters
+        ----------
+        mock_add_digitize : Mock
+            Mock for add_unexisting_digitizer
+        mock_af : Mock
+            Mock for getting AF XML
+        mock_ds : Mock
+            Mock for getting DS XML
+        app : Flask
+            Flask app instance
+        """
+
+        mock_add_digitize.side_effect = self.custom_mock_add_digitizer
+        mock_add_digitize.side_effect = self.custom_mock_add_digitizer
+        mock_af.return_value, mock_ds.return_value = self.get_af_ds(
+            "short_mock_af.xml", "short_mock_ds.xml"
+        )
+        existing_objectifs_type = db.session.execute(
+            select(BibNomenclaturesTypes).filter_by(mnemonique="CA_OBJECTIFS")
+        ).scalar()
+        if existing_objectifs_type:
+            objectifs_type = existing_objectifs_type
+        else:
+            objectifs_type = BibNomenclaturesTypes(
+                mnemonique="CA_OBJECTIFS",
+                label_default="Objectifs des cadres d'acquisition",
+                definition_default="Types d'objectifs pour les cadres d'acquisition",
+                label_fr="Objectifs des cadres d'acquisition",
+                definition_fr="Types d'objectifs pour les cadres d'acquisition",
+            )
+            db.session.add(objectifs_type)
+            db.session.flush()
+        test_objectif = TNomenclatures(
+            id_type=objectifs_type.id_type,
+            cd_nomenclature="9999",
+            mnemonique="test_objectif",
+            label_default="Objectif de test",
+            definition_default="Objectif utilisé pour les tests",
+            label_fr="Objectif de test",
+            definition_fr="Objectif utilisé pour les tests",
+            active=True,
+        )
+        db.session.add(test_objectif)
+        db.session.commit()
+
+        sync_af_and_ds()
+        af_statement = select(TAcquisitionFramework).filter_by(
+            unique_acquisition_framework_id="4A9DDA1F-B623-3E13-E053-2614A8C02B7C"
+        )
+        acquisition_framework: TAcquisitionFramework = db.session.execute(af_statement).scalar()
+        assert (
+            len(acquisition_framework.cor_objectifs) > 0
+        ), "Aucun objectif n'a été associé au cadre d'acquisition"
+        matching_objectifs = [
+            obj for obj in acquisition_framework.cor_objectifs if obj.cd_nomenclature == "9999"
+        ]
+        assert (
+            len(matching_objectifs),
+            f"L'objectif avec le code '9999' n'est pas présent exactement une fois."
+            f" Codes trouvés: {matching_objectifs}",
+        )
+        assert (
+            matching_objectifs[0].mnemonique == "test_objectif",
+            f"Le mnémonique de l'objectif est incorrect. Attendu: 'test_objectif',"
+            f" Trouvé: '{matching_objectifs[0].mnemonique}'",
+        )

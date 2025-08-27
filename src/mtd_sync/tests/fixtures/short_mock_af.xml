@@ -31,7 +31,7 @@
             <ca:ReferenceTemporelle>
                 <ca:dateLancement/>
             </ca:ReferenceTemporelle>
-            <ca:objectif>7</ca:objectif>
+            <ca:objectif>9999</ca:objectif>
             <ca:niveauTerritorial>5</ca:niveauTerritorial>
             <ca:territoire>METROP</ca:territoire>
             <ca:precisionGeographique/>

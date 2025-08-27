@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 from urllib.parse import urljoin
 
 from lxml import etree
@@ -9,12 +10,13 @@ from geonature.core.gn_meta.models import (
     CorAcquisitionFrameworkActor,
     CorDatasetActor,
     TAcquisitionFramework,
+    cor_acquisition_framework_objectif,
 )
 
 from geonature.utils.config import config
 from geonature.utils.env import db
 
-from pypnnomenclature.models import TNomenclatures
+from pypnnomenclature.models import TNomenclatures, BibNomenclaturesTypes
 from pypnusershub.db.models import User
 from pypnusershub.auth.providers.cas_inpn_provider import *
 from sqlalchemy import func, select
@@ -168,6 +170,82 @@ class INPNCAS:
         return cls._get_user_json(user_id)
 
 
+class ObjectifsTools:
+    """
+    Tools to manage objectifs
+    """
+
+    def __init__(self):
+        self.nomenclature_type = db.session.scalar(
+            select(BibNomenclaturesTypes).where(BibNomenclaturesTypes.mnemonique == "CA_OBJECTIFS")
+        )
+
+        if not self.nomenclature_type:
+            raise ValueError(
+                "Le type de nomenclature 'CA_OBJECTIFS' n'existe pas en base de données"
+            )
+
+    @lru_cache(maxsize=128)
+    def _find_objectif_nomenclature(self, objectif_id: str) -> Optional[TNomenclatures]:
+        """
+        Trouve un objectif en base à partir de son cd_nomenclature
+        Parameters
+        ----------
+        params:
+            objectif_id : L'identifiant de l'objectif (cd_nomenclature)
+
+        Returns:
+            L'objet nomenclature correspondant ou None si non trouvé
+        -------
+        """
+        objectif_nomenclature = db.session.scalar(
+            select(TNomenclatures).where(
+                TNomenclatures.cd_nomenclature == objectif_id,
+                TNomenclatures.id_type == self.nomenclature_type.id_type,
+            )
+        )
+        if not objectif_nomenclature:
+            logger.error(
+                f"Objectif avec cd_nomenclature '{objectif_id}' non trouvé pour le type 'CA_OBJECTIFS'"
+            )
+
+        return objectif_nomenclature
+
+    def create_objectif_relationship(self, af: TAcquisitionFramework, objectif_cd: str) -> bool:
+        """
+        Create a relationship between an AF and an objectif. If the relationship already exists, do nothing.
+        Parameters
+        ----------
+        af: The AF
+        objectif_cd: The objectif cd_nomenclature
+
+        Returns True if the relationship was created, False otherwise.
+        -------
+        """
+        if not objectif_cd:
+            return False
+        objectif_nomenclature = self._find_objectif_nomenclature(objectif_cd)
+        if not objectif_nomenclature:
+            return False
+        existing_relation = db.session.scalar(
+            select(cor_acquisition_framework_objectif).where(
+                cor_acquisition_framework_objectif.c.id_acquisition_framework
+                == af.id_acquisition_framework,
+                cor_acquisition_framework_objectif.c.id_nomenclature_objectif
+                == objectif_nomenclature.id_nomenclature,
+            )
+        )
+        if existing_relation:
+            return False
+        db.session.execute(
+            cor_acquisition_framework_objectif.insert().values(
+                id_acquisition_framework=af.id_acquisition_framework,
+                id_nomenclature_objectif=objectif_nomenclature.id_nomenclature,
+            )
+        )
+        return True
+
+
 def add_unexisting_digitizer(id_digitizer):
     """
     Method to trigger global MTD sync.
@@ -201,6 +279,7 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
     :param id_role: use role id pass on user authent only
     """
     cas_api = INPNCAS()
+    objectif_tools = ObjectifsTools()
     # read nomenclatures from DB to avoid errors if GN nomenclature is not the same
     list_cd_nomenclature = db.session.scalars(
         select(TNomenclatures.cd_nomenclature).distinct()
@@ -217,6 +296,7 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
     logger.debug("MTD - PROCESS AF LIST")
     for af in af_list:
         actors = af.pop("actors")
+        objectif = af.pop("objectif", None)
         with db.session.begin_nested():
             add_unexisting_digitizer(af["id_digitizer"] if not id_role else id_role)
         if level_log_mtd_sync == "DEBUG":
@@ -241,6 +321,7 @@ def process_af_and_ds(af_list, ds_list, id_role=None):
                     nb_updated_af += 1
                 else:
                     nb_retrieved_new_af += 1
+            objectif_tools.create_objectif_relationship(af, objectif)
             associate_actors(
                 actors,
                 CorAcquisitionFrameworkActor,
