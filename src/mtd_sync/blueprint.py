@@ -21,7 +21,7 @@ from .mtd_sync import (
 def synchronize_mtd():
     if request.method != "OPTIONS" and request.endpoint in [
         "gn_meta.get_datasets",
-        "gn_meta.get_acquisition_frameworks_list",
+        "gn_meta.get_acquisition_frameworks",
     ]:
         from flask_login import current_user
 
