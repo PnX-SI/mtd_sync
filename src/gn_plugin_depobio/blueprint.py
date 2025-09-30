@@ -8,7 +8,7 @@ from utils_flask_sqla.response import json_resp
 from .mail_builder import MailBuilder
 
 log = logging.getLogger()
-blueprint = Blueprint("mtd_sync", __name__)
+blueprint = Blueprint("plugin_depobio", __name__)
 
 
 @blueprint.route("/extended_af_publish/<int:af_id>", endpoint="extended_af_publish")

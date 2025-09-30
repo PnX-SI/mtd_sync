@@ -104,7 +104,7 @@ jobs:
           geonature db upgrade ref_geo_inpn_grids_10@head
         env:
           GEONATURE_CONFIG_FILE: dependencies/GeoNature/config/test_config.toml
-      - name: Install mtd_sync
+      - name: Install gn_plugin_depobio
         run: |
           pip install .
       - name: Test with pytest
@@ -112,7 +112,7 @@ jobs:
           pytest -v --cov --cov-report xml
         env:
           GEONATURE_CONFIG_FILE: dependencies/GeoNature/config/test_config.toml
-          GEONATURE_SETTINGS: mtd_sync.test_config
+          GEONATURE_SETTINGS: gn_plugin_depobio.test_config
       - name: Upload coverage to Codecov
         if: ${{ matrix.debian-version == '12' }}
         uses: codecov/codecov-action@v2

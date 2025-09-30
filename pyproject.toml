@@ -6,7 +6,7 @@ testpaths = [
 
 [tool.coverage.run]
 source = [
-    "mtd_sync",
+    "gn_plugin_depobio",
 ]
 omit = [
     "*/tests/*",
