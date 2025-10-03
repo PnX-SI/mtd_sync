@@ -6,13 +6,13 @@ import logging
 
 from geonature.utils.env import db
 from pypnusershub.tests.utils import set_logged_user
-from mtd_sync.mail_builder import MailBuilder
+from gn_plugin_depobio.mail_builder import MailBuilder
 
 logger = logging.getLogger(__name__)
 
 
-class TestMtd:
-    def test_mtd(self):
+class TestDepobio:
+    def test_Depobio(self):
         assert 1 == 1
 
 
@@ -37,8 +37,8 @@ class TestBlueprint:
         """
         set_logged_user(self.client, users_with_mail["user"])
         af = acquisition_frameworks["af_1"]
-        # Configure the extension by setting mtd_sync route as extended af publish route
-        route_name = "mtd_sync.extended_af_publish"
+        # Configure the extension by setting gn_plugin_depobio route as extended af publish route
+        route_name = "plugin_depobio.extended_af_publish"
         app.config["METADATA"]["EXTENDED_AF_PUBLISH_ROUTE_NAME"] = route_name
         with caplog.at_level(logging.ERROR):
             response = self.client.get(
@@ -66,7 +66,7 @@ class TestBlueprint:
         with caplog.at_level(logging.ERROR):
             response = self.client.get(
                 url_for(
-                    "mtd_sync.extended_af_publish",
+                    "plugin_depobio.extended_af_publish",
                     af_id=af.id_acquisition_framework,
                 )
             )
