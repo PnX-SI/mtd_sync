@@ -20,8 +20,8 @@ setuptools.setup(
     maintainer="Parcs nationaux des Écrins et PATRINAT",
     maintainer_email="geonature@ecrins-parcnational.fr",
     url="https://github.com/PnX-SI/gn_plugin_depobio",
-    packages=setuptools.find_packages("src"),
-    package_dir={"": "src"},
+    packages=setuptools.find_packages("backend"),
+    package_dir={"": "backend"},
     install_requires=requirements,
     entry_points={
         "gn_module": [
