@@ -92,8 +92,12 @@ class TestBlueprint:
 
         mock_validate.side_effect = lambda x: True if x == 3391529 else False
 
-        assert not validate_folder_number(9999999999)
-        assert validate_folder_number(3391529)
+        response_invalid = validate_folder_number(9999999999)
+        assert response_invalid.status_code == 404
+
+        response_valid = validate_folder_number(3391529)
+        assert response_valid.status_code == 200
+        assert response_valid.json == True
 
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")

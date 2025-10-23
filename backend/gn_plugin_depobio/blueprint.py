@@ -1,4 +1,5 @@
-from flask import Blueprint
+from flask import Blueprint, abort
+
 import logging
 from geonature.core.gn_meta.models import TAcquisitionFramework
 from geonature.utils.env import db
@@ -49,4 +50,8 @@ def validate_folder_number(folder_number: int):
 
     """
     ds_api = DemarcheSimplifieConnexion()
-    return ds_api.is_valid_folder_number(folder_number)
+    result = ds_api.is_valid_folder_number(folder_number)
+    if not result:
+        abort(404, description=f"Le dossier numéro {folder_number} n'existe pas")
+    return result
+

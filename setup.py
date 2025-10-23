@@ -30,7 +30,7 @@ setuptools.setup(
             "doc_url = gn_plugin_depobio:MODULE_DOC_URL",
             "blueprint = gn_plugin_depobio.blueprint:blueprint",
             "config_schema = gn_plugin_depobio.conf_schema_toml:GnModuleSchemaConf",
-            # "migrations = gn_plugin_depobio:migrations",
+            "migrations = gn_plugin_depobio:migrations",
         ],
     },
     classifiers=[
