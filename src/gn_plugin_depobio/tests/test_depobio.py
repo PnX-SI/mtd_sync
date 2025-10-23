@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 
 import pytest
@@ -5,6 +6,7 @@ from flask import url_for, g
 import logging
 
 from geonature.utils.env import db
+from gn_plugin_depobio.demarches_simplifiee import DemarcheSimplifieConnexion
 from pypnusershub.tests.utils import set_logged_user
 from gn_plugin_depobio.mail_builder import MailBuilder
 
@@ -74,6 +76,25 @@ class TestBlueprint:
         assert response.status_code == 500
         assert "[Errno 111] Connection refused" in caplog.text
 
+    @patch(
+        "gn_plugin_depobio.demarches_simplifiee.DemarcheSimplifieConnexion.is_valid_folder_number"
+    )
+    def test_validate_folder_number(self, mock_validate, app, users_with_mail):
+        set_logged_user(self.client, users_with_mail["user"])
+
+        def validate_folder_number(folder_number):
+            return self.client.get(
+                url_for(
+                    "plugin_depobio.validate_folder_number",
+                    folder_number=folder_number,
+                )
+            ).json
+
+        mock_validate.side_effect = lambda x: True if x == 3391529 else False
+
+        assert not validate_folder_number(9999999999)
+        assert validate_folder_number(3391529)
+
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
 class TestMail:
@@ -95,3 +116,13 @@ class TestMail:
         )
         assert "af_1" in mail_builder.mail["msg_html"]
         assert str(af.unique_acquisition_framework_id).upper() in mail_builder.mail["msg_html"]
+
+
+class TestDSAPI:
+    @pytest.mark.skipif(
+        os.environ.get("GITHUB_ACTIONS") == "true", reason="API non appellable depuis la CI Github"
+    )
+    def test_validate_folder_number(self):
+        ds_api = DemarcheSimplifieConnexion()
+        assert ds_api.is_valid_folder_number(3391529)
+        assert not ds_api.is_valid_folder_number(9999999999)
