@@ -1,0 +1,43 @@
+<div id="all" class="container-fluid">
+    <div class="container card folder-container">
+        <div class="card-content">
+            <div class="input-group">
+                <div class="card-body text-center">
+                    <h1 class="card-title">
+                        Vérifier numéro de dossier
+                    </h1>
+                    <h2 class="card-subtitle">
+                        Permet de vérifier si le numéro de dossier existe sur démarches simplifiées
+                    </h2>
+                    <div class="export-content">
+                        <div class="search-container">
+                            <input
+                                    type="text"
+                                    id="dossier-input"
+                                    class="form-control"
+                                    placeholder="Numéro de dossier"
+                                    [(ngModel)]="numeroDossier"
+                                    (keyup.enter)="verifierDossier()"
+                            >
+                            <button
+                                    class="search-button"
+                                    (click)="verifierDossier()"
+                                    [disabled]="!numeroDossier || isLoading"
+                            >
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                        <div *ngIf="isLoading" class="loader">
+                            <mat-spinner diameter="40"></mat-spinner>
+                        </div>
+                        <div class="result-message" *ngIf="message">
+                            <div [class]="'alert ' + (isError ? 'alert-danger' : 'alert-success')">
+                                {{ message }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
