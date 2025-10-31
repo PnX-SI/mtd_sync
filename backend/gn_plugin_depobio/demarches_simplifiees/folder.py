@@ -2,6 +2,9 @@ import dataclasses
 import datetime
 from enum import Enum
 from typing import Optional
+from geonature.utils.config import config
+
+configuration_depobio = config["PLUGIN_DEPOBIO"]
 
 
 class State(str, Enum):
@@ -33,15 +36,34 @@ class Fields:
     def __init__(self, fields: list[Field]):
         self.fields = fields
         self.__fields_as_dict = {field.id: field for field in fields}
+        self.configuration = configuration_depobio["DEMARCHES_SIMPLIFIEES"]
 
     def get_libelle(self):
-        return self.__fields_as_dict["Q2hhbXAtMTE0NzQ4"]
+        try:
+            return self.__fields_as_dict[self.configuration["LIBELLE_ID"]]
+        except KeyError as err:
+            raise ValueError(
+                f"The value supplied for the configuration of libelle"
+                f" ({self.configuration['LIBELLE_ID']}) appears to be wrong. Check your configs"
+            ) from err
 
     def get_description(self):
-        return self.__fields_as_dict["Q2hhbXAtMTE0NzQ5"]
+        try:
+            return self.__fields_as_dict[self.configuration["DESCRIPTION_ID"]]
+        except KeyError as err:
+            raise ValueError(
+                f"The value supplied for the configuration of description"
+                f" ({self.configuration['DESCRIPTION_ID']}) appears to be wrong. Check your configs"
+            ) from err
 
     def get_date_fin(self):
-        return self.__fields_as_dict["Q2hhbXAtMTE0Nzgy"]
+        try:
+            return self.__fields_as_dict[self.configuration["DATE_FIN_ID"]]
+        except KeyError as err:
+            raise ValueError(
+                f"The value supplied for the configuration of date_fin"
+                f" ({self.configuration['DATE_FIN_ID']}) appears to be wrong. Check your configs"
+            ) from err
 
     @classmethod
     def champs_from_list(cls, fields: list[dict]) -> "Fields":

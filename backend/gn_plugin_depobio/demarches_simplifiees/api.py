@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .folder import Folder
 
-configuration_depobio = config["PLUGIN_DEPOBIO"]
+configuration_demarches_simplifiees = config["PLUGIN_DEPOBIO"]["DEMARCHES_SIMPLIFIEES"]
 
 
 class DemarchesSimplifieesConnexion:
@@ -17,10 +17,10 @@ class DemarchesSimplifieesConnexion:
     """
 
     def __init__(self):
-        url_api = configuration_depobio["DEMARCHE_SIMPLIFIEES_URL"]
+        url_api = configuration_demarches_simplifiees["URL"]
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {configuration_depobio['DEMARCHE_SIMPLIFIEES_TOKEN']}",
+            "Authorization": f"Bearer {configuration_demarches_simplifiees['TOKEN']}",
         }
         transport = RequestsHTTPTransport(url=url_api, headers=headers, verify=True, retries=3)
 
@@ -74,7 +74,6 @@ class DemarchesSimplifieesConnexion:
             result = self.client.execute(
                 query, variable_values={"dossierNumber": int(folder_number)}
             )
-            print(dataclasses.asdict(Folder.from_dict(result)))
             return Folder.from_dict(result)
         except TransportQueryError:
             return None
