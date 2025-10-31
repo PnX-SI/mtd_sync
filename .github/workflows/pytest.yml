@@ -112,6 +112,7 @@ jobs:
           pytest -v --cov --cov-report xml
         env:
           GEONATURE_CONFIG_FILE: dependencies/GeoNature/config/test_config.toml
+          GEONATURE_PLUGIN_DEPOBIO_CONFIG_FILE: depobio.toml.example
           GEONATURE_SETTINGS: gn_plugin_depobio.test_config
       - name: Upload coverage to Codecov
         if: ${{ matrix.debian-version == '12' }}

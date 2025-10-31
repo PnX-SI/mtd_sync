@@ -125,21 +125,21 @@ class TestBlueprint:
             )
         )
 
-    @patch(
-        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
-    )
+    @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
     def test_get_folder_error(self, mock_get_folder, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_get_folder.return_value = True
+        mock_get_folder.return_value = False
         response_invalid = self.get_folder(9999999999)
         assert response_invalid.status_code == 404
 
-    @patch(
-        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
-    )
+    @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
     def test_get_folder(self, mock_get_folder, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_get_folder.return_value = False
+        mock_get_folder.return_value = {
+            "id": "RG9zc2llci0zMzkxNTI5",
+            "number": 3391529,
+            "libelle": "Projet-test",
+        }
         response_valid = self.get_folder(3391529)
         assert response_valid.status_code == 200
         folder = response_valid.json

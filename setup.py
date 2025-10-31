@@ -22,6 +22,9 @@ setuptools.setup(
     url="https://github.com/PnX-SI/gn_plugin_depobio",
     packages=setuptools.find_packages("backend"),
     package_dir={"": "backend"},
+    package_data={
+        "gn_plugin_depobio": ["demarches_simplifiees/graphql/*.graphql"],
+    },
     install_requires=requirements,
     entry_points={
         "gn_module": [
