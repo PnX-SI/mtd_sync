@@ -1,3 +1,5 @@
+from time import sleep
+
 from flask import Blueprint, abort
 
 import logging
@@ -6,7 +8,7 @@ from geonature.utils.env import db
 from geonature.utils.errors import GeoNatureError
 from geonature.core.gn_permissions import decorators as permissions
 from utils_flask_sqla.response import json_resp
-from .demarches_simplifiee import DemarcheSimplifieConnexion
+from .demarches_simplifiees import DemarchesSimplifieesConnexion
 from .mail_builder import MailBuilder
 
 log = logging.getLogger()
@@ -42,16 +44,37 @@ def publish_acquisition_framework_mail(af_id):
 @json_resp
 def validate_folder_number(folder_number: int):
     """
-    Method for validating a folder number against Demarche Simplifiée
+    Method for validating a folder number against Demarches Simplifiées
     ----------
     folder_number
 
     -------
 
     """
-    ds_api = DemarcheSimplifieConnexion()
+    ds_api = DemarchesSimplifieesConnexion()
     result = ds_api.is_valid_folder_number(folder_number)
+    print(f"result = {result} for folder_number = {folder_number}")
+    sleep(1)
+    print("end sleep")
     if not result:
         abort(404, description=f"Le dossier numéro {folder_number} n'existe pas")
     return result
 
+
+@blueprint.route("/get_folder/<int:folder_number>", endpoint="get_folder")
+@permissions.check_cruved_scope("R", module_code="METADATA")
+@json_resp
+def get_folder(folder_number: int):
+    """
+    Method for getting folder informations from Demarches Simplifiées
+    ----------
+    folder_number
+
+    -------
+
+    """
+    ds_api = DemarchesSimplifieesConnexion()
+    result = ds_api.get_folder(folder_number)
+    if not result:
+        abort(404, description=f"Le dossier numéro {folder_number} n'existe pas")
+    return result

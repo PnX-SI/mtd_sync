@@ -6,9 +6,12 @@ from flask import url_for, g
 import logging
 
 from geonature.utils.env import db
-from gn_plugin_depobio.demarches_simplifiee import DemarcheSimplifieConnexion
+from gn_plugin_depobio.demarches_simplifiees import DemarchesSimplifieesConnexion
 from pypnusershub.tests.utils import set_logged_user
 from gn_plugin_depobio.mail_builder import MailBuilder
+
+from gn_plugin_depobio.demarches_simplifiees.folder import Folder
+from .assets.api_responses import example_api_response
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,13 @@ def users_with_mail(users):
         user.email = f"{user.prenom_role}@example.com"
     db.session.commit()
     return users
+
+
+def assert_folder_properties(folder):
+    """Helper pour vérifier les propriétés d'un objet Folder"""
+    assert folder.id == "RG9zc2llci0zMzkxNTI5"
+    assert folder.number == 3391529
+    assert folder.libelle == "Projet-test"
 
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
@@ -77,27 +87,65 @@ class TestBlueprint:
         assert "[Errno 111] Connection refused" in caplog.text
 
     @patch(
-        "gn_plugin_depobio.demarches_simplifiee.DemarcheSimplifieConnexion.is_valid_folder_number"
+        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
+    )
+    def test_validate_folder_number_error(self, mock_validate, app, users_with_mail):
+        set_logged_user(self.client, users_with_mail["user"])
+        mock_validate.return_value = False
+
+        response_invalid = self.client.get(
+            url_for(
+                "plugin_depobio.validate_folder_number",
+                folder_number=9999999999,
+            )
+        )
+        assert response_invalid.status_code == 404
+
+    @patch(
+        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
     )
     def test_validate_folder_number(self, mock_validate, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
+        mock_validate.return_value = True
 
-        def validate_folder_number(folder_number):
-            return self.client.get(
-                url_for(
-                    "plugin_depobio.validate_folder_number",
-                    folder_number=folder_number,
-                )
-            ).json
+        response_valid = self.client.get(
+            url_for(
+                "plugin_depobio.validate_folder_number",
+                folder_number=3391529,
+            )
+        )
+        assert response_valid.status_code == 200
+        assert response_valid.json
 
-        mock_validate.side_effect = lambda x: True if x == 3391529 else False
+    def get_folder(self, folder_number):
+        return self.client.get(
+            url_for(
+                "plugin_depobio.get_folder",
+                folder_number=folder_number,
+            )
+        )
 
-        response_invalid = validate_folder_number(9999999999)
+    @patch(
+        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
+    )
+    def test_get_folder_error(self, mock_get_folder, app, users_with_mail):
+        set_logged_user(self.client, users_with_mail["user"])
+        mock_get_folder.return_value = True
+        response_invalid = self.get_folder(9999999999)
         assert response_invalid.status_code == 404
 
-        response_valid = validate_folder_number(3391529)
+    @patch(
+        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
+    )
+    def test_get_folder(self, mock_get_folder, app, users_with_mail):
+        set_logged_user(self.client, users_with_mail["user"])
+        mock_get_folder.return_value = False
+        response_valid = self.get_folder(3391529)
         assert response_valid.status_code == 200
-        assert response_valid.json == True
+        folder = response_valid.json
+        assert folder["id"] == "RG9zc2llci0zMzkxNTI5"
+        assert folder["number"] == 3391529
+        assert folder["libelle"] == "Projet-test"
 
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
@@ -124,9 +172,25 @@ class TestMail:
 
 class TestDSAPI:
     @pytest.mark.skipif(
-        os.environ.get("GITHUB_ACTIONS") == "true", reason="API non appellable depuis la CI Github"
+        os.environ.get("GITHUB_ACTIONS") == "true",
+        reason="API non appellable depuis la CI Github",
     )
     def test_validate_folder_number(self):
-        ds_api = DemarcheSimplifieConnexion()
+        ds_api = DemarchesSimplifieesConnexion()
         assert ds_api.is_valid_folder_number(3391529)
         assert not ds_api.is_valid_folder_number(9999999999)
+
+    @pytest.mark.skipif(
+        os.environ.get("GITHUB_ACTIONS") == "true",
+        reason="API non appellable depuis la CI Github",
+    )
+    def test_get_folder_information(self):
+        ds_api = DemarchesSimplifieesConnexion()
+        result = ds_api.get_folder(3391529)
+        assert_folder_properties(result)
+
+
+class TestDSObjects:
+    def test_folder(self):
+        folder = Folder.from_dict(example_api_response)
+        assert_folder_properties(folder)
