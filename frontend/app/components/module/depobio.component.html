@@ -16,13 +16,13 @@
                                     id="dossier-input"
                                     class="form-control"
                                     placeholder="Numéro de dossier"
-                                    [(ngModel)]="numeroDossier"
-                                    (keyup.enter)="verifierDossier()"
+                                    [(ngModel)]="folderNumber"
+                                    (keyup.enter)="getFolder()"
                             >
                             <button
                                     class="search-button"
-                                    (click)="verifierDossier()"
-                                    [disabled]="!numeroDossier || isLoading"
+                                    (click)="getFolder()"
+                                    [disabled]="!folderNumber || isLoading"
                             >
                                 <i class="fa fa-search"></i>
                             </button>
@@ -35,9 +35,47 @@
                                 {{ message }}
                             </div>
                         </div>
+                        <div *ngIf="folderData && !isLoading" class="folder-data card mt-4 p-3">
+                            <h3 class="text-secondary d-flex align-items-center">
+                                <i class="fa fa-folder-open mr-2"></i> Informations du dossier :
+                            </h3>
+                            <ul class="list-unstyled mt-3">
+                                <li class="mb-2">
+                            <span class="font-weight-bold text-secondary">
+                                <i class="fa fa-id-card mr-2 text-secondary"></i>ID:&nbsp; </span> {{ folderData.id }}
+                                                </li>
+                                                <li class="mb-2">
+                            <span class="font-weight-bold text-secondary">
+                                <i class="fa fa-tag mr-2 text-secondary"></i>Libellé:&nbsp; </span> {{ folderData.libelle }}
+                                                </li>
+                                                <li class="mb-2">
+                            <span class="font-weight-bold text-secondary">
+                                <i class="fa fa-file-text mr-2 text-secondary"></i>Description:&nbsp;</span> {{ folderData.description }}
+                                                </li>
+                                                <li class="mb-2">
+                            <span class="font-weight-bold text-secondary">
+                                <i class="fa fa-hashtag mr-2 text-secondary"></i>Numéro:&nbsp; </span> {{ folderData.number }}
+                                                </li>
+                                                <li class="mb-2">
+                            <span class="font-weight-bold text-secondary">
+                                <i class="fa fa-info-circle mr-2 text-secondary"></i>État:&nbsp; </span> {{ folderData.state }}
+                                                </li>
+                                                <li class="mb-2">
+                            <span class="font-weight-bold text-secondary">
+                                <i class="fa fa-calendar mr-2 text-secondary"></i>Date de fin:&nbsp; </span>
+                                    {{ folderData.date_fin || 'Non spécifiée' }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div *ngIf="folderData && !isError && !isLoading" class="create-af-button">
+                            <button class="btn btn-success" (click)="createAF()">
+                                <i class="fa fa-plus-circle mr-2"></i>Créer CA associé
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>

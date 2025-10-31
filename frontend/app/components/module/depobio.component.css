@@ -14,6 +14,7 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border: none;
     border-radius: 8px;
+    position: relative;
 }
 
 .card-content {
@@ -113,4 +114,26 @@
   display: flex;
   justify-content: center;
   margin: 20px 0;
+}
+
+.folder-data {
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.folder-data ul li {
+    display: flex;
+    align-items: center;
+}
+
+.create-af-button {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 10;
+}
+
+.create-af-button .btn {
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
 }
