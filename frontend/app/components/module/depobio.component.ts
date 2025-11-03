@@ -1,5 +1,8 @@
 import {Component} from '@angular/core';
 import {DemarcheSimplifieeService} from "../../services/demarche-simplifiee.service";
+import {AuthService, User} from '@geonature/components/auth/auth.service';
+import {FolderData} from "./interfaces";
+
 
 @Component({
     selector: 'app-depobio',
@@ -11,16 +14,15 @@ export class DepobioComponent {
     message: string = '';
     isError: boolean = false;
     isLoading: boolean = false;
-    folderData: any = null;
+    folderData: FolderData = null;
     currentUser: User
 
-    constructor(private demarcheSimplifieeService: DemarcheSimplifieeService) {
-    }
+    constructor(private demarcheSimplifieeService: DemarcheSimplifieeService, private _authService: AuthService) {}
     isValidInteger(value: string){
-    if (!value) return false;
-    const number = Number(value);
-    // Condition pour être un nombre sur graphql
-    return Number.isInteger(number) && number >= -2147483648 && number <= 2147483647;
+        if (!value) return false;
+        const number = Number(value);
+        // Condition pour être un nombre sur graphql
+        return Number.isInteger(number) && number >= -2147483648 && number <= 2147483647;
     }
     getFolder() {
         if (!this.folderNumber) {
@@ -54,7 +56,8 @@ export class DepobioComponent {
 
     createAF() {
         try {
-            const apiUrl = this.demarcheSimplifieeService.createAFUrl(this.folderData);
+            let currentUser = this._authService.getCurrentUser();
+            const apiUrl = this.demarcheSimplifieeService.createAFUrl(this.folderData, currentUser);
             window.location.href = apiUrl; // Redirige dans le même onglet
         } catch (error) {
             console.error('Erreur lors de la génération de l\'URL:', error);

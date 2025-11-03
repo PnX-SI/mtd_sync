@@ -40,18 +40,22 @@ def publish_acquisition_framework_mail(af_id):
         raise GeoNatureError(error)
     return mail_builder.mail
 
+
 def convert_error_to_exception(error: TransportQueryError, folder_number: int) -> Exception:
     error_code = error.errors[0]["extensions"]["code"]
     if error_code == ErrorCode.NOT_FOUND:
         result = NotFound(f"Le dossier numéro {folder_number} n'existe pas")
         result.printable = True
     elif error_code == ErrorCode.FORBIDDEN:
-        result = Forbidden(f"Le dossier numéro {folder_number} ne peux pas être visualisé. Vérifiez que votre numéro de "
-                           f"dossier appartient à la bonne démarche")
+        result = Forbidden(
+            f"Le dossier numéro {folder_number} ne peux pas être visualisé. Vérifiez que votre numéro de "
+            f"dossier appartient à la bonne démarche"
+        )
         result.printable = True
     else:
         result = error
     return result
+
 
 @blueprint.route("/validate_folder_number/<int:folder_number>", endpoint="validate_folder_number")
 @permissions.check_cruved_scope("R", module_code="METADATA")
@@ -71,6 +75,7 @@ def validate_folder_number(folder_number: int):
     except TransportQueryError as error:
         raise convert_error_to_exception(error, folder_number)
     return result
+
 
 @blueprint.route("/get_folder/<int:folder_number>", endpoint="get_folder")
 @permissions.check_cruved_scope("R", module_code="METADATA")

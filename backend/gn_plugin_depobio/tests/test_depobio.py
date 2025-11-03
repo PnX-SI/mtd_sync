@@ -93,7 +93,9 @@ class TestBlueprint:
     )
     def test_validate_folder_number_error(self, mock_validate, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_validate.side_effect =  TransportQueryError("a", errors=[{"extensions": {"code" : ErrorCode.NOT_FOUND}}])
+        mock_validate.side_effect = TransportQueryError(
+            "a", errors=[{"extensions": {"code": ErrorCode.NOT_FOUND}}]
+        )
 
         response_invalid = self.client.get(
             url_for(
@@ -130,7 +132,9 @@ class TestBlueprint:
     @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
     def test_get_folder_error(self, mock_get_folder, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_get_folder.side_effect = TransportQueryError("a", errors=[{"extensions": {"code": ErrorCode.FORBIDDEN}}])
+        mock_get_folder.side_effect = TransportQueryError(
+            "a", errors=[{"extensions": {"code": ErrorCode.FORBIDDEN}}]
+        )
         response_invalid = self.get_folder(99999999)
         assert response_invalid.status_code == 403
 
@@ -193,6 +197,7 @@ class TestDSAPI:
         assert_folder_properties(result)
         with pytest.raises(TransportQueryError):
             ds_api.get_folder(99999999)
+
 
 class TestDSObjects:
     def test_folder(self):

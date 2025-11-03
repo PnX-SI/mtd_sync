@@ -17,6 +17,7 @@ class ErrorCode(str, Enum):
     FORBIDDEN = "unauthorized"
     NOT_FOUND = "not_found"
 
+
 class DemarchesSimplifieesConnexion:
     """
     Class for interaction with Demarche Simplifiée GraphQL API
@@ -52,8 +53,6 @@ class DemarchesSimplifieesConnexion:
         self.client.execute(query, variable_values={"dossierNumber": int(dossier_number)})
         return True
 
-
-
     def get_folder(self, folder_number: int):
         """
         Get folder information from démarche simplifiée
@@ -73,8 +72,5 @@ class DemarchesSimplifieesConnexion:
 
         with open(query_file, "r") as f:
             query = gql(f.read())
-        result = self.client.execute(
-            query, variable_values={"dossierNumber": int(folder_number)}
-        )
+        result = self.client.execute(query, variable_values={"dossierNumber": int(folder_number)})
         return Folder.from_dict(result)
-
