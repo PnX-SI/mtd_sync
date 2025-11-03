@@ -12,10 +12,16 @@ export class DepobioComponent {
     isError: boolean = false;
     isLoading: boolean = false;
     folderData: any = null;
+    currentUser: User
 
     constructor(private demarcheSimplifieeService: DemarcheSimplifieeService) {
     }
-
+    isValidInteger(value: string){
+    if (!value) return false;
+    const number = Number(value);
+    // Condition pour être un nombre sur graphql
+    return Number.isInteger(number) && number >= -2147483648 && number <= 2147483647;
+    }
     getFolder() {
         if (!this.folderNumber) {
             return;
@@ -33,9 +39,12 @@ export class DepobioComponent {
                 this.isLoading = false;
             },
             error: (error) => {
-                this.message = error.status === 404
-                    ? 'Le dossier n\'existe pas dans démarches simplifiées.'
-                    : 'Une erreur est survenue lors de la vérification du dossier.';
+                console.log(error);
+            if ((error.status === 404 || error.status === 403) && error.error?.description) {
+                this.message = error.error?.description;
+            } else {
+                this.message = 'Une erreur est survenue lors de la vérification du dossier.';
+            }
                 this.isError = true;
                 this.isLoading = false;
                 this.folderData = null;

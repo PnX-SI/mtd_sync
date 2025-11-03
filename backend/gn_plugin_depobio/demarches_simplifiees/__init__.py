@@ -1,3 +1,3 @@
-from .api import DemarchesSimplifieesConnexion
+from .api import DemarchesSimplifieesConnexion, ErrorCode
 
-__all__ = ["DemarchesSimplifieesConnexion"]
+__all__ = ["DemarchesSimplifieesConnexion", "ErrorCode"]

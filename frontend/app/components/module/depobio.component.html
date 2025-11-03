@@ -22,7 +22,7 @@
                             <button
                                     class="search-button"
                                     (click)="getFolder()"
-                                    [disabled]="!folderNumber || isLoading"
+                                    [disabled]="!folderNumber || isLoading || !isValidInteger(folderNumber)"
                             >
                                 <i class="fa fa-search"></i>
                             </button>

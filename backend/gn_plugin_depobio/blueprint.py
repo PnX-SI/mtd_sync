@@ -8,7 +8,9 @@ from geonature.utils.env import db
 from geonature.utils.errors import GeoNatureError
 from geonature.core.gn_permissions import decorators as permissions
 from utils_flask_sqla.response import json_resp
-from .demarches_simplifiees import DemarchesSimplifieesConnexion
+from gql.transport.exceptions import TransportQueryError
+from werkzeug.exceptions import Forbidden, NotFound
+from .demarches_simplifiees import DemarchesSimplifieesConnexion, ErrorCode
 from .mail_builder import MailBuilder
 
 log = logging.getLogger()
@@ -38,6 +40,18 @@ def publish_acquisition_framework_mail(af_id):
         raise GeoNatureError(error)
     return mail_builder.mail
 
+def convert_error_to_exception(error: TransportQueryError, folder_number: int) -> Exception:
+    error_code = error.errors[0]["extensions"]["code"]
+    if error_code == ErrorCode.NOT_FOUND:
+        result = NotFound(f"Le dossier numéro {folder_number} n'existe pas")
+        result.printable = True
+    elif error_code == ErrorCode.FORBIDDEN:
+        result = Forbidden(f"Le dossier numéro {folder_number} ne peux pas être visualisé. Vérifiez que votre numéro de "
+                           f"dossier appartient à la bonne démarche")
+        result.printable = True
+    else:
+        result = error
+    return result
 
 @blueprint.route("/validate_folder_number/<int:folder_number>", endpoint="validate_folder_number")
 @permissions.check_cruved_scope("R", module_code="METADATA")
@@ -52,14 +66,11 @@ def validate_folder_number(folder_number: int):
 
     """
     ds_api = DemarchesSimplifieesConnexion()
-    result = ds_api.is_valid_folder_number(folder_number)
-    print(f"result = {result} for folder_number = {folder_number}")
-    sleep(1)
-    print("end sleep")
-    if not result:
-        abort(404, description=f"Le dossier numéro {folder_number} n'existe pas")
+    try:
+        result = ds_api.is_valid_folder_number(folder_number)
+    except TransportQueryError as error:
+        raise convert_error_to_exception(error, folder_number)
     return result
-
 
 @blueprint.route("/get_folder/<int:folder_number>", endpoint="get_folder")
 @permissions.check_cruved_scope("R", module_code="METADATA")
@@ -74,7 +85,8 @@ def get_folder(folder_number: int):
 
     """
     ds_api = DemarchesSimplifieesConnexion()
-    result = ds_api.get_folder(folder_number)
-    if not result:
-        abort(404, description=f"Le dossier numéro {folder_number} n'existe pas")
+    try:
+        result = ds_api.get_folder(folder_number)
+    except TransportQueryError as error:
+        raise convert_error_to_exception(error, folder_number)
     return result

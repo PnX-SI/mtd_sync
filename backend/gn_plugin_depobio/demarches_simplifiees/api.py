@@ -1,4 +1,5 @@
 import dataclasses
+from enum import Enum
 
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
@@ -10,6 +11,11 @@ from .folder import Folder
 
 configuration_demarches_simplifiees = config["PLUGIN_DEPOBIO"]["DEMARCHES_SIMPLIFIEES"]
 
+
+class ErrorCode(str, Enum):
+    # Demarche simplifiées mix up Unauthorized and Forbidden
+    FORBIDDEN = "unauthorized"
+    NOT_FOUND = "not_found"
 
 class DemarchesSimplifieesConnexion:
     """
@@ -43,12 +49,10 @@ class DemarchesSimplifieesConnexion:
             }
             """
         )
+        self.client.execute(query, variable_values={"dossierNumber": int(dossier_number)})
+        return True
 
-        try:
-            self.client.execute(query, variable_values={"dossierNumber": int(dossier_number)})
-            return True
-        except TransportQueryError:
-            return False
+
 
     def get_folder(self, folder_number: int):
         """
@@ -69,11 +73,8 @@ class DemarchesSimplifieesConnexion:
 
         with open(query_file, "r") as f:
             query = gql(f.read())
+        result = self.client.execute(
+            query, variable_values={"dossierNumber": int(folder_number)}
+        )
+        return Folder.from_dict(result)
 
-        try:
-            result = self.client.execute(
-                query, variable_values={"dossierNumber": int(folder_number)}
-            )
-            return Folder.from_dict(result)
-        except TransportQueryError:
-            return None

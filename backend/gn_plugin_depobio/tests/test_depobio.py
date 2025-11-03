@@ -4,9 +4,11 @@ from unittest.mock import patch
 import pytest
 from flask import url_for, g
 import logging
+from werkzeug.exceptions import Forbidden, NotFound
+from gql.transport.exceptions import TransportQueryError
 
 from geonature.utils.env import db
-from gn_plugin_depobio.demarches_simplifiees import DemarchesSimplifieesConnexion
+from gn_plugin_depobio.demarches_simplifiees import DemarchesSimplifieesConnexion, ErrorCode
 from pypnusershub.tests.utils import set_logged_user
 from gn_plugin_depobio.mail_builder import MailBuilder
 
@@ -91,12 +93,12 @@ class TestBlueprint:
     )
     def test_validate_folder_number_error(self, mock_validate, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_validate.return_value = False
+        mock_validate.side_effect =  TransportQueryError("a", errors=[{"extensions": {"code" : ErrorCode.NOT_FOUND}}])
 
         response_invalid = self.client.get(
             url_for(
                 "plugin_depobio.validate_folder_number",
-                folder_number=9999999999,
+                folder_number=99999999,
             )
         )
         assert response_invalid.status_code == 404
@@ -128,9 +130,9 @@ class TestBlueprint:
     @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
     def test_get_folder_error(self, mock_get_folder, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_get_folder.return_value = False
-        response_invalid = self.get_folder(9999999999)
-        assert response_invalid.status_code == 404
+        mock_get_folder.side_effect = TransportQueryError("a", errors=[{"extensions": {"code": ErrorCode.FORBIDDEN}}])
+        response_invalid = self.get_folder(99999999)
+        assert response_invalid.status_code == 403
 
     @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
     def test_get_folder(self, mock_get_folder, app, users_with_mail):
@@ -173,22 +175,24 @@ class TestMail:
 class TestDSAPI:
     @pytest.mark.skipif(
         os.environ.get("GITHUB_ACTIONS") == "true",
-        reason="API non appellable depuis la CI Github",
+        reason="API not callable from CI Github because require white listed IP",
     )
     def test_validate_folder_number(self):
         ds_api = DemarchesSimplifieesConnexion()
         assert ds_api.is_valid_folder_number(3391529)
-        assert not ds_api.is_valid_folder_number(9999999999)
+        with pytest.raises(TransportQueryError):
+            ds_api.is_valid_folder_number(99999999)
 
     @pytest.mark.skipif(
         os.environ.get("GITHUB_ACTIONS") == "true",
-        reason="API non appellable depuis la CI Github",
+        reason="API not callable from CI Github because require white listed IP",
     )
     def test_get_folder_information(self):
         ds_api = DemarchesSimplifieesConnexion()
         result = ds_api.get_folder(3391529)
         assert_folder_properties(result)
-
+        with pytest.raises(TransportQueryError):
+            ds_api.get_folder(99999999)
 
 class TestDSObjects:
     def test_folder(self):
