@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import {DepobioComponent} from "./components/module/depobio.component";
-import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { RouterModule, Routes } from '@angular/router';
+import { DepobioComponent } from './components/module/depobio.component';
 
 const routes: Routes = [{ path: '', component: DepobioComponent }];
 
@@ -19,11 +19,10 @@ const routes: Routes = [{ path: '', component: DepobioComponent }];
     FormsModule,
     MatIconModule,
     MatButtonModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
   ],
   exports: [],
   providers: [],
-  bootstrap: [DepobioComponent]
+  bootstrap: [DepobioComponent],
 })
 export class GeonatureModule {}
-
