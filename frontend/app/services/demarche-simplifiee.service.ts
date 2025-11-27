@@ -24,13 +24,13 @@ export class DemarcheSimplifieeService {
   createAFUrl(folderData: FolderData, user: User): string {
     const params = new URLSearchParams({
       id: folderData.id,
-      libelle: folderData.libelle,
-      description: folderData.description,
-      number: String(folderData.number),
+      acquisition_framework_name: folderData.libelle,
+      acquisition_framework_desc: folderData.description,
+      folder_id: String(folderData.number),
       state: folderData.state,
-      date_fin: folderData.date_fin,
-      user: user.id_role,
-      organism: String(user.id_organisme),
+      acquisition_framework_end_date: folderData.date_fin,
+      id_role: user.id_role,
+      id_organism: String(user.id_organisme),
     });
     return `${this.config.URL_APPLICATION}/#/${this.module.getModule('METADATA').module_url}/af?${params.toString()}`;
   }
