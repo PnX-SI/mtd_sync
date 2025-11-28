@@ -2,6 +2,7 @@ import logging
 
 from flask import current_app, g
 
+from geonature.core.gn_meta.models import TAcquisitionFramework
 from geonature.utils.env import db
 from geonature.utils.errors import GeoNatureError
 from pypnusershub.db import User
@@ -14,7 +15,7 @@ configuration_depobio = config["PLUGIN_DEPOBIO"]
 
 
 class MailBuilder:
-    def __init__(self, acquisition_framework):
+    def __init__(self, acquisition_framework: TAcquisitionFramework):
         """
         Build a mail from an acquisition framework
 
@@ -23,7 +24,9 @@ class MailBuilder:
         acquisition_framework
         """
         self.af = acquisition_framework
-        # self.ca_idtps = self._get_ca_idtps()
+        self.folder_id = None
+        if self.af.additional_data:
+            self.folder_id = self.af.additional_data.get("folder_id")
         self.subject = self._build_subject()
         self.content = self._build_content()
         self.recipients = self._build_recipient()
@@ -60,9 +63,8 @@ class MailBuilder:
         mail_subject_base = configuration_depobio["MAIL_SUBJECT_AF_CLOSED_BASE"]
         if mail_subject_base:
             mail_subject = mail_subject_base + " " + mail_subject
-        # TODO when file number added, add it back to the email
-        # if self.ca_idtps:
-        #     mail_subject = mail_subject + " pour le dossier {}".format(self.ca_idtps)
+        if self.folder_id:
+            mail_subject = mail_subject + " pour le dossier {}".format(self.folder_id)
         return mail_subject
 
     def _build_content(self) -> str:
@@ -82,17 +84,14 @@ class MailBuilder:
 
         mail_content = f"""Bonjour,<br>
            <br>
-           Le cadre d'acquisition <i> "{self.af.acquisition_framework_name}" </i> dont l’identifiant est
+           Le cadre d'acquisition <i> "{self.af.acquisition_framework_name}" </i> dont l’identifiant est 
            "{str(self.af.unique_acquisition_framework_id).upper()}" que vous nous avez transmis a été déposé"""
 
         mail_content_additions = configuration_depobio["MAIL_CONTENT_AF_CLOSED_ADDITION"]
         mail_content_pdf = configuration_depobio["MAIL_CONTENT_AF_CLOSED_PDF"]
         mail_content_greetings = configuration_depobio["MAIL_CONTENT_AF_CLOSED_GREETINGS"]
-
-        # TODO when file number added, add it back to the email
-
-        # if self.ca_idtps:
-        #     mail_content = mail_content + f"dans le cadre du dossier {self.ca_idtps}"
+        if self.folder_id:
+            mail_content = mail_content + f" dans le cadre du dossier {self.folder_id}"
 
         mail_content += mail_content_additions if mail_content_additions else ".<br>"
         if mail_content_pdf:
