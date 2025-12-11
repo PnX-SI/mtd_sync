@@ -2,13 +2,13 @@
   id="all"
   class="container-fluid"
 >
-  <div class="container card folder-container">
+  <div class="container card file-container">
     <div class="card-content">
       <div class="input-group">
         <div class="card-body text-center">
           <h1 class="card-title">Vérifier numéro de dossier</h1>
           <h2 class="card-subtitle">
-            Permet de vérifier si le numéro de dossier existe sur démarches simplifiées
+            Permet de vérifier si le numéro de dossier existe sur Démarches Simplifiées
           </h2>
           <div class="export-content">
             <div class="search-container">
@@ -17,13 +17,13 @@
                 id="dossier-input"
                 class="form-control"
                 placeholder="Numéro de dossier"
-                [(ngModel)]="folderNumber"
-                (keyup.enter)="getFolder()"
+                [(ngModel)]="fileNumber"
+                (keyup.enter)="getFile()"
               />
               <button
                 class="search-button"
-                (click)="getFolder()"
-                [disabled]="!folderNumber || isLoading || !isValidInteger(folderNumber)"
+                (click)="getFile()"
+                [disabled]="!fileNumber || isLoading || !isValidInteger(fileNumber)"
               >
                 <i class="fa fa-search"></i>
               </button>
@@ -43,8 +43,8 @@
               </div>
             </div>
             <div
-              *ngIf="folderData && !isLoading"
-              class="folder-data card mt-4 p-3"
+              *ngIf="fileData && !isLoading"
+              class="file-data card mt-4 p-3"
             >
               <h3 class="text-secondary d-flex align-items-center">
                 <i class="fa fa-folder-open mr-2"></i>
@@ -56,48 +56,48 @@
                     <i class="fa fa-id-card mr-2 text-secondary"></i>
                     ID:&nbsp;
                   </span>
-                  {{ folderData.id }}
+                  {{ fileData.id }}
                 </li>
                 <li class="mb-2">
                   <span class="font-weight-bold text-secondary">
                     <i class="fa fa-tag mr-2 text-secondary"></i>
                     Libellé:&nbsp;
                   </span>
-                  {{ folderData.libelle }}
+                  {{ fileData.libelle }}
                 </li>
                 <li class="mb-2">
                   <span class="font-weight-bold text-secondary">
                     <i class="fa fa-file-text mr-2 text-secondary"></i>
                     Description:&nbsp;
                   </span>
-                  {{ folderData.description }}
+                  {{ fileData.description }}
                 </li>
                 <li class="mb-2">
                   <span class="font-weight-bold text-secondary">
                     <i class="fa fa-hashtag mr-2 text-secondary"></i>
                     Numéro:&nbsp;
                   </span>
-                  {{ folderData.number }}
+                  {{ fileData.number }}
                 </li>
                 <li class="mb-2">
                   <span class="font-weight-bold text-secondary">
                     <i class="fa fa-info-circle mr-2 text-secondary"></i>
                     État:&nbsp;
                   </span>
-                  {{ folderData.state }}
+                  {{ fileData.state }}
                 </li>
                 <li class="mb-2">
                   <span class="font-weight-bold text-secondary">
                     <i class="fa fa-calendar mr-2 text-secondary"></i>
                     Date de fin:&nbsp;
                   </span>
-                  {{ folderData.date_fin || 'Non spécifiée' }}
+                  {{ fileData.date_fin || 'Non spécifiée' }}
                 </li>
               </ul>
             </div>
 
             <div
-              *ngIf="folderData && !isError && !isLoading"
+              *ngIf="fileData && !isError && !isLoading"
               class="create-af-button"
             >
               <button

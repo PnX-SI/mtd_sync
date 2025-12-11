@@ -1,4 +1,4 @@
-export interface FolderData {
+export interface FileData {
   id: string;
   number: number;
   state: string;

@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from geonature.utils.config import config
 
 configuration_depobio = config["PLUGIN_DEPOBIO"]
@@ -24,7 +24,7 @@ class Field:
     stringValue: str
     prefilled: bool
     columns: list
-    values: str = None
+    values: Optional[List[str]] = None
     selected: Optional[bool] = None
     date: Optional[datetime.date] = None
 
@@ -43,8 +43,8 @@ class Fields:
             return self.__fields_as_dict[self.configuration["LIBELLE_ID"]]
         except KeyError as err:
             raise ValueError(
-                f"The value supplied for the configuration of libelle"
-                f" ({self.configuration['LIBELLE_ID']}) appears to be wrong. Check your configs"
+                "The value supplied in the configuration for LIBELLE_ID"
+                f' - {self.configuration["LIBELLE_ID"]} - appears to be wrong. Check your config.'
             ) from err
 
     def get_description(self):
@@ -52,8 +52,8 @@ class Fields:
             return self.__fields_as_dict[self.configuration["DESCRIPTION_ID"]]
         except KeyError as err:
             raise ValueError(
-                f"The value supplied for the configuration of description"
-                f" ({self.configuration['DESCRIPTION_ID']}) appears to be wrong. Check your configs"
+                "The value supplied in the configuration for DESCRIPTION_ID"
+                f' - {self.configuration["DESCRIPTION_ID"]} - appears to be wrong. Check your config.'
             ) from err
 
     def get_date_fin(self):
@@ -61,8 +61,8 @@ class Fields:
             return self.__fields_as_dict[self.configuration["DATE_FIN_ID"]]
         except KeyError as err:
             raise ValueError(
-                f"The value supplied for the configuration of date_fin"
-                f" ({self.configuration['DATE_FIN_ID']}) appears to be wrong. Check your configs"
+                "The value supplied in the configuration for DATE_FIN_ID"
+                f' - {self.configuration["DATE_FIN_ID"]} - appears to be wrong. Check your config.'
             ) from err
 
     @classmethod
@@ -81,7 +81,7 @@ class Fields:
 
 
 @dataclasses.dataclass
-class Folder:
+class File:
     id: str
     number: int
     state: State
@@ -91,15 +91,15 @@ class Folder:
     _fields: Fields
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Folder":
+    def from_dict(cls, data: dict) -> "File":
         if "dossier" not in data:
             raise ValueError("Data should contain a 'dossier' key")
-        folder_api = data["dossier"]
-        champs = Fields.champs_from_list(folder_api["champs"] + folder_api["annotations"])
+        file = data["dossier"]
+        champs = Fields.champs_from_list(file["champs"] + file["annotations"])
         return cls(
-            folder_api["id"],
-            folder_api["number"],
-            State(folder_api["state"]),
+            file["id"],
+            file["number"],
+            State(file["state"]),
             champs.get_libelle().stringValue,
             champs.get_description().stringValue,
             champs.get_date_fin().stringValue,

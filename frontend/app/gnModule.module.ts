@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule, Routes } from '@angular/router';
-import { DepobioComponent } from './components/module/depobio.component';
+import { DepobioComponent } from './components/depobio/depobio.component';
 
 const routes: Routes = [{ path: '', component: DepobioComponent }];
 

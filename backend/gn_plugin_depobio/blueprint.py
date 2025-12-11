@@ -1,8 +1,5 @@
-from time import sleep
+from flask import Blueprint
 
-from flask import Blueprint, abort
-
-import logging
 from geonature.core.gn_meta.models import TAcquisitionFramework
 from geonature.utils.env import db
 from geonature.utils.errors import GeoNatureError
@@ -10,10 +7,9 @@ from geonature.core.gn_permissions import decorators as permissions
 from utils_flask_sqla.response import json_resp
 from gql.transport.exceptions import TransportQueryError
 from werkzeug.exceptions import Forbidden, NotFound
-from .demarches_simplifiees import DemarchesSimplifieesConnexion, ErrorCode
+from .demarches_simplifiees import DemarchesSimplifieesConnection, ErrorCode
 from .mail_builder import MailBuilder
 
-log = logging.getLogger()
 blueprint = Blueprint("plugin_depobio", __name__)
 
 
@@ -41,57 +37,45 @@ def publish_acquisition_framework_mail(af_id):
     return mail_builder.mail
 
 
-def convert_error_to_exception(error: TransportQueryError, folder_number: int) -> Exception:
+def convert_error_to_exception(error: TransportQueryError, file_number: int) -> Exception:
     error_code = error.errors[0]["extensions"]["code"]
     if error_code == ErrorCode.NOT_FOUND:
-        result = NotFound(f"Le dossier numéro {folder_number} n'existe pas")
-        result.printable = True
+        result = NotFound(f"Le dossier numéro {file_number} n'existe pas")
     elif error_code == ErrorCode.FORBIDDEN:
         result = Forbidden(
-            f"Le dossier numéro {folder_number} ne peux pas être visualisé. Vérifiez que votre numéro de "
-            f"dossier appartient à la bonne démarche"
+            f"Le dossier numéro {file_number} ne peut pas être récupéré. Vérifiez que votre numéro de "
+            "dossier appartient à la bonne démarche"
         )
-        result.printable = True
     else:
         result = error
     return result
 
 
-@blueprint.route("/validate_folder_number/<int:folder_number>", endpoint="validate_folder_number")
+@blueprint.route("/validate_file_number/<int:file_number>", endpoint="validate_file_number")
 @permissions.check_cruved_scope("R", module_code="METADATA")
 @json_resp
-def validate_folder_number(folder_number: int):
+def validate_file_number(file_number: int):
     """
-    Method for validating a folder number against Demarches Simplifiées
-    ----------
-    folder_number
-
-    -------
-
+    Validate a file number against Demarches Simplifiées
     """
-    ds_api = DemarchesSimplifieesConnexion()
+    ds_api = DemarchesSimplifieesConnection()
     try:
-        result = ds_api.is_valid_folder_number(folder_number)
+        result = ds_api.is_valid_file_number(file_number)
     except TransportQueryError as error:
-        raise convert_error_to_exception(error, folder_number)
+        raise convert_error_to_exception(error, file_number)
     return result
 
 
-@blueprint.route("/get_folder/<int:folder_number>", endpoint="get_folder")
+@blueprint.route("/get_file/<int:file_number>", endpoint="get_file")
 @permissions.check_cruved_scope("R", module_code="METADATA")
 @json_resp
-def get_folder(folder_number: int):
+def get_file(file_number: int):
     """
-    Method for getting folder informations from Demarches Simplifiées
-    ----------
-    folder_number
-
-    -------
-
+    Get file informations from Demarches Simplifiées
     """
-    ds_api = DemarchesSimplifieesConnexion()
+    ds_api = DemarchesSimplifieesConnection()
     try:
-        result = ds_api.get_folder(folder_number)
+        result = ds_api.get_file(file_number)
     except TransportQueryError as error:
-        raise convert_error_to_exception(error, folder_number)
+        raise convert_error_to_exception(error, file_number)
     return result

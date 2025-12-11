@@ -2,7 +2,7 @@ from marshmallow import Schema, fields
 
 
 class DemarchesSimplifiees(Schema):
-    URL = fields.String()
+    URL = fields.String(load_default="https://www.demarches-simplifiees.fr/api/v2/graphql")
     TOKEN = fields.String()
     LIBELLE_ID = fields.String(load_default="Q2hhbXAtMTE0NzQ4")
     DESCRIPTION_ID = fields.String(load_default="Q2hhbXAtMTE0NzQ5")

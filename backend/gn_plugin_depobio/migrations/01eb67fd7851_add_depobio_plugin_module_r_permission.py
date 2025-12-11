@@ -1,7 +1,6 @@
-"""Add depobio module permission
+"""add depobio plugin module read permission
 
-Revision ID: 1e2926e0b603
-Revises: 78ba67f597ee
+Revision ID: 01eb67fd7851
 Create Date: 2025-08-28 18:55:23.047899
 
 """

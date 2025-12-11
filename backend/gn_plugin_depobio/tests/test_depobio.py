@@ -8,11 +8,11 @@ from werkzeug.exceptions import Forbidden, NotFound
 from gql.transport.exceptions import TransportQueryError
 
 from geonature.utils.env import db
-from gn_plugin_depobio.demarches_simplifiees import DemarchesSimplifieesConnexion, ErrorCode
+from gn_plugin_depobio.demarches_simplifiees import DemarchesSimplifieesConnection, ErrorCode
 from pypnusershub.tests.utils import set_logged_user
 from gn_plugin_depobio.mail_builder import MailBuilder
 
-from gn_plugin_depobio.demarches_simplifiees.folder import Folder
+from gn_plugin_depobio.demarches_simplifiees.file import File
 from .assets.api_responses import example_api_response
 
 logger = logging.getLogger(__name__)
@@ -34,11 +34,11 @@ def users_with_mail(users):
     return users
 
 
-def assert_folder_properties(folder):
-    """Helper pour vérifier les propriétés d'un objet Folder"""
-    assert folder.id == "RG9zc2llci0zMzkxNTI5"
-    assert folder.number == 3391529
-    assert folder.libelle == "Projet-test"
+def assert_file_properties(file):
+    """Helper pour vérifier les propriétés d'un objet File"""
+    assert file.id == "RG9zc2llci0zMzkxNTI5"
+    assert file.number == 3391529
+    assert file.libelle == "Projet-test"
 
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
@@ -89,9 +89,9 @@ class TestBlueprint:
         assert "[Errno 111] Connection refused" in caplog.text
 
     @patch(
-        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
+        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnection.is_valid_file_number"
     )
-    def test_validate_folder_number_error(self, mock_validate, app, users_with_mail):
+    def test_validate_file_number_error(self, mock_validate, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
         mock_validate.side_effect = TransportQueryError(
             "a", errors=[{"extensions": {"code": ErrorCode.NOT_FOUND}}]
@@ -99,59 +99,59 @@ class TestBlueprint:
 
         response_invalid = self.client.get(
             url_for(
-                "plugin_depobio.validate_folder_number",
-                folder_number=99999999,
+                "plugin_depobio.validate_file_number",
+                file_number=99999999,
             )
         )
         assert response_invalid.status_code == 404
 
     @patch(
-        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.is_valid_folder_number"
+        "gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnection.is_valid_file_number"
     )
-    def test_validate_folder_number(self, mock_validate, app, users_with_mail):
+    def test_validate_file_number(self, mock_validate, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
         mock_validate.return_value = True
 
         response_valid = self.client.get(
             url_for(
-                "plugin_depobio.validate_folder_number",
-                folder_number=3391529,
+                "plugin_depobio.validate_file_number",
+                file_number=3391529,
             )
         )
         assert response_valid.status_code == 200
         assert response_valid.json
 
-    def get_folder(self, folder_number):
+    def get_file(self, file_number):
         return self.client.get(
             url_for(
-                "plugin_depobio.get_folder",
-                folder_number=folder_number,
+                "plugin_depobio.get_file",
+                file_number=file_number,
             )
         )
 
-    @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
-    def test_get_folder_error(self, mock_get_folder, app, users_with_mail):
+    @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnection.get_file")
+    def test_get_file_error(self, mock_get_file, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_get_folder.side_effect = TransportQueryError(
+        mock_get_file.side_effect = TransportQueryError(
             "a", errors=[{"extensions": {"code": ErrorCode.FORBIDDEN}}]
         )
-        response_invalid = self.get_folder(99999999)
+        response_invalid = self.get_file(99999999)
         assert response_invalid.status_code == 403
 
-    @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnexion.get_folder")
-    def test_get_folder(self, mock_get_folder, app, users_with_mail):
+    @patch("gn_plugin_depobio.demarches_simplifiees.api.DemarchesSimplifieesConnection.get_file")
+    def test_get_file(self, mock_get_file, app, users_with_mail):
         set_logged_user(self.client, users_with_mail["user"])
-        mock_get_folder.return_value = {
+        mock_get_file.return_value = {
             "id": "RG9zc2llci0zMzkxNTI5",
             "number": 3391529,
             "libelle": "Projet-test",
         }
-        response_valid = self.get_folder(3391529)
+        response_valid = self.get_file(3391529)
         assert response_valid.status_code == 200
-        folder = response_valid.json
-        assert folder["id"] == "RG9zc2llci0zMzkxNTI5"
-        assert folder["number"] == 3391529
-        assert folder["libelle"] == "Projet-test"
+        file = response_valid.json
+        assert file["id"] == "RG9zc2llci0zMzkxNTI5"
+        assert file["number"] == 3391529
+        assert file["libelle"] == "Projet-test"
 
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
@@ -179,27 +179,27 @@ class TestMail:
 class TestDSAPI:
     @pytest.mark.skipif(
         os.environ.get("GITHUB_ACTIONS") == "true",
-        reason="API not callable from CI Github because require white listed IP",
+        reason="API not callable from CI Github because requires white listed IP",
     )
-    def test_validate_folder_number(self):
-        ds_api = DemarchesSimplifieesConnexion()
-        assert ds_api.is_valid_folder_number(3391529)
+    def test_validate_file_number(self):
+        ds_api = DemarchesSimplifieesConnection()
+        assert ds_api.is_valid_file_number(3391529)
         with pytest.raises(TransportQueryError):
-            ds_api.is_valid_folder_number(99999999)
+            ds_api.is_valid_file_number(99999999)
 
     @pytest.mark.skipif(
         os.environ.get("GITHUB_ACTIONS") == "true",
-        reason="API not callable from CI Github because require white listed IP",
+        reason="API not callable from CI Github because requires white listed IP",
     )
-    def test_get_folder_information(self):
-        ds_api = DemarchesSimplifieesConnexion()
-        result = ds_api.get_folder(3391529)
-        assert_folder_properties(result)
+    def test_get_file_information(self):
+        ds_api = DemarchesSimplifieesConnection()
+        result = ds_api.get_file(3391529)
+        assert_file_properties(result)
         with pytest.raises(TransportQueryError):
-            ds_api.get_folder(99999999)
+            ds_api.get_file(99999999)
 
 
 class TestDSObjects:
-    def test_folder(self):
-        folder = Folder.from_dict(example_api_response)
-        assert_folder_properties(folder)
+    def test_file(self):
+        file = File.from_dict(example_api_response)
+        assert_file_properties(file)
