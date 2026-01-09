@@ -18,7 +18,7 @@
                 class="form-control"
                 placeholder="Numéro de dossier"
                 [(ngModel)]="fileNumber"
-                (keyup.enter)="getFile()"
+                (keyup.enter)="fileNumber && !isLoading && isValidInteger(fileNumber) && getFile()"
               />
               <button
                 class="search-button"
