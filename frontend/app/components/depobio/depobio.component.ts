@@ -11,6 +11,7 @@ import { FileData } from './interfaces';
 export class DepobioComponent {
   fileNumber: string = '';
   message: string = '';
+  isDescriptionVisible: boolean = false;
   isError: boolean = false;
   isLoading: boolean = false;
   fileData: FileData | null = null;
