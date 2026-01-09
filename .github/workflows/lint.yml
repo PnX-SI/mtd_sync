@@ -10,4 +10,4 @@ jobs:
       - name: Backend code formatting check (Black)
         uses: psf/black@stable
         with:
-          src: "./src"
+          src: "./backend"

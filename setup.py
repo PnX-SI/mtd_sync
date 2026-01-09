@@ -20,8 +20,11 @@ setuptools.setup(
     maintainer="Parcs nationaux des Écrins et PATRINAT",
     maintainer_email="geonature@ecrins-parcnational.fr",
     url="https://github.com/PnX-SI/gn_plugin_depobio",
-    packages=setuptools.find_packages("src"),
-    package_dir={"": "src"},
+    packages=setuptools.find_packages("backend"),
+    package_dir={"": "backend"},
+    package_data={
+        "gn_plugin_depobio": ["demarches_simplifiees/graphql/*.graphql"],
+    },
     install_requires=requirements,
     entry_points={
         "gn_module": [
@@ -30,7 +33,7 @@ setuptools.setup(
             "doc_url = gn_plugin_depobio:MODULE_DOC_URL",
             "blueprint = gn_plugin_depobio.blueprint:blueprint",
             "config_schema = gn_plugin_depobio.conf_schema_toml:GnModuleSchemaConf",
-            # "migrations = gn_plugin_depobio:migrations",
+            "migrations = gn_plugin_depobio:migrations",
         ],
     },
     classifiers=[
