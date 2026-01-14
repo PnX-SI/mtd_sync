@@ -1,5 +1,9 @@
 import { Component } from '@angular/core';
 import { AuthService, User } from '@geonature/components/auth/auth.service';
+import { ConfigService } from '@geonature/services/config.service';
+import { ModuleService } from '@geonature/services/module.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { DemarchesSimplifieesService } from '../../services/demarches-simplifiees.service';
 import { FileData } from './interfaces';
 
@@ -15,10 +19,13 @@ export class DepobioComponent {
   isLoading: boolean = false;
   fileData: FileData | null = null;
   currentUser: User;
+  existingAfUrls: string[] = [];
 
   constructor(
     private demarcheSimplifieeService: DemarchesSimplifieesService,
-    private _authService: AuthService
+    private _authService: AuthService,
+    private config: ConfigService,
+    private module: ModuleService
   ) {}
 
   isValidInteger(value: string) {
@@ -37,12 +44,29 @@ export class DepobioComponent {
     this.isError = false;
     this.isLoading = true;
     this.fileData = null;
-    this.demarcheSimplifieeService.getFile(this.fileNumber).subscribe({
-      next: (data) => {
-        this.fileData = data;
-        this.message = 'Le dossier a été trouvé dans Démarches Simplifiées.';
-        this.isError = false;
+
+    forkJoin({
+      file: this.demarcheSimplifieeService.getFile(this.fileNumber),
+      afIds: this.demarcheSimplifieeService
+        .getAfFromFileNumber(this.fileNumber)
+        .pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: (res) => {
+        this.fileData = res.file;
+        const existingAfIds = res.afIds as number[];
         this.isLoading = false;
+        if (existingAfIds && existingAfIds.length > 0) {
+          this.existingAfUrls = existingAfIds.map((id) =>
+            this.demarcheSimplifieeService.getExistingAfUrl(id)
+          );
+          this.message =
+            existingAfIds.length > 1
+              ? 'Le dossier a été trouvé et plusieurs cadres d’acquisition existent déjà.'
+              : 'Le dossier a été trouvé et un cadre d’acquisition existe déjà.';
+        } else {
+          this.message = 'Le dossier a été trouvé dans Démarches Simplifiées.';
+        }
+        this.isError = false;
       },
       error: (error) => {
         if ((error.status === 404 || error.status === 403) && error.error?.description) {

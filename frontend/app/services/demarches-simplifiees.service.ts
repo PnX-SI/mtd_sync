@@ -34,4 +34,13 @@ export class DemarchesSimplifieesService {
     });
     return `${this.config.URL_APPLICATION}/#/${this.module.getModule('METADATA').module_url}/af?${params.toString()}`;
   }
+
+  getAfFromFileNumber(fileNumber: string): Observable<number[]> {
+    const apiUrl = `${this.config.API_ENDPOINT}/${this.config.PLUGIN_DEPOBIO.MODULE_URL}/get_af_from_file_number/${fileNumber}`;
+    return this.http.get<number[]>(apiUrl);
+  }
+
+  getExistingAfUrl(afId: number): string {
+    return `${this.config.URL_APPLICATION}/#/${this.module.getModule('METADATA').module_url}/af_detail/${afId}`;
+  }
 }
