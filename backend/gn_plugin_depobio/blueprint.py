@@ -79,3 +79,22 @@ def get_file(file_number: int):
     except TransportQueryError as error:
         raise convert_error_to_exception(error, file_number)
     return result
+
+
+@blueprint.route("/get_af_from_file_number/<int:file_number>", endpoint="get_af_from_file_number")
+@permissions.check_cruved_scope("R", module_code="METADATA")
+@json_resp
+def get_af_from_file_number(file_number: int):
+    """
+    Get acquisition framework IDs from file number
+    """
+    afs = (
+        db.session.query(TAcquisitionFramework.id_acquisition_framework)
+        .filter(TAcquisitionFramework.additional_data["file_id"].astext == str(file_number))
+        .all()
+    )
+
+    if not afs:
+        raise NotFound(f"Aucun cadre d'acquisition trouvé pour le dossier n°{file_number}")
+
+    return [af.id_acquisition_framework for af in afs]

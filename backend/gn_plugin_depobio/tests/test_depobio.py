@@ -153,6 +153,47 @@ class TestBlueprint:
         assert file["number"] == 3391529
         assert file["libelle"] == "Projet-test"
 
+    def test_get_af_from_file_number(self, app, users_with_mail, acquisition_frameworks):
+        """
+        Test retrieval of AF IDs from a file number
+        """
+        set_logged_user(self.client, users_with_mail["user"])
+
+        af = acquisition_frameworks["af_1"]
+        af.additional_data = {"file_id": "12345"}
+        db.session.commit()
+
+        response = self.client.get(
+            url_for("plugin_depobio.get_af_from_file_number", file_number=12345)
+        )
+        assert response.status_code == 200
+        assert response.json == [af.id_acquisition_framework]
+
+        response_404 = self.client.get(
+            url_for("plugin_depobio.get_af_from_file_number", file_number=99999)
+        )
+        assert response_404.status_code == 404
+
+    def test_get_af_from_file_number_multiple(self, app, users_with_mail, acquisition_frameworks):
+        """
+        Test retrieval of multiple AF IDs linked to the same file number
+        """
+        set_logged_user(self.client, users_with_mail["user"])
+
+        af1 = acquisition_frameworks["af_1"]
+        af2 = acquisition_frameworks["af_2"]
+        af1.additional_data = {"file_id": "555"}
+        af2.additional_data = {"file_id": "555"}
+        db.session.commit()
+
+        response = self.client.get(
+            url_for("plugin_depobio.get_af_from_file_number", file_number=555)
+        )
+        assert response.status_code == 200
+        assert len(response.json) == 2
+        assert af1.id_acquisition_framework in response.json
+        assert af2.id_acquisition_framework in response.json
+
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
 class TestMail:

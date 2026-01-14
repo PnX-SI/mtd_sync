@@ -100,7 +100,27 @@
               *ngIf="fileData && !isError && !isLoading"
               class="create-af-button"
             >
+              <div
+                *ngIf="existingAfUrls.length > 0"
+                class="alert alert-info mt-3"
+              >
+                <i class="fa fa-info-circle mr-2"></i>
+                Ce dossier est déjà lié à
+                {{ existingAfUrls.length > 1 ? 'plusieurs cadres' : 'un cadre' }} d'acquisition.
+                <div class="mt-2">
+                  <a
+                    *ngFor="let url of existingAfUrls; let i = index"
+                    [href]="url"
+                    class="btn btn-primary mr-2 mb-2"
+                  >
+                    <i class="fa fa-external-link mr-2"></i>
+                    Consulter le CA {{ existingAfUrls.length > 1 ? '#' + (i + 1) : '' }}
+                  </a>
+                </div>
+              </div>
+
               <button
+                *ngIf="existingAfUrls.length === 0"
                 class="btn btn-success"
                 (click)="createAF()"
               >
