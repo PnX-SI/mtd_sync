@@ -31,6 +31,8 @@ export class DemarchesSimplifieesService {
       acquisition_framework_end_date: fileData.date_fin,
       id_role: user.id_role,
       id_organism: String(user.id_organisme),
+      contractor: fileData.contractor,
+      siret: fileData.siret,
     });
     return `${this.config.URL_APPLICATION}/#/${this.module.getModule('METADATA').module_url}/af?${params.toString()}`;
   }

@@ -39,6 +39,8 @@ def assert_file_properties(file):
     assert file.id == "RG9zc2llci0zMzkxNTI5"
     assert file.number == 3391529
     assert file.libelle == "Projet-test"
+    assert file.contractor == "ECOSCOP"
+    assert file.siret == "42977626300031"
 
 
 @pytest.mark.usefixtures("client_class", "temporary_transaction")
@@ -145,6 +147,8 @@ class TestBlueprint:
             "id": "RG9zc2llci0zMzkxNTI5",
             "number": 3391529,
             "libelle": "Projet-test",
+            "contractor": "ECOSCOP",
+            "siret": "42977626300031",
         }
         response_valid = self.get_file(3391529)
         assert response_valid.status_code == 200
@@ -152,6 +156,8 @@ class TestBlueprint:
         assert file["id"] == "RG9zc2llci0zMzkxNTI5"
         assert file["number"] == 3391529
         assert file["libelle"] == "Projet-test"
+        assert file["contractor"] == "ECOSCOP"
+        assert file["siret"] == "42977626300031"
 
     def test_get_af_from_file_number(self, app, users_with_mail, acquisition_frameworks):
         """
@@ -199,7 +205,7 @@ class TestBlueprint:
 class TestMail:
     def test_mail_builder(self, app, users_with_mail, acquisition_frameworks):
         """
-        Test if the mail builded correspond to what we expect
+        Test if the mail built corresponds to what we expect
         """
         set_logged_user(self.client, users_with_mail["user"])
         af = acquisition_frameworks["af_1"]
