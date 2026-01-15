@@ -45,6 +45,7 @@ export class DepobioComponent {
     this.isError = false;
     this.isLoading = true;
     this.fileData = null;
+    this.existingAfUrls = [];
 
     forkJoin({
       file: this.demarcheSimplifieeService.getFile(this.fileNumber),
@@ -54,7 +55,7 @@ export class DepobioComponent {
     }).subscribe({
       next: (res) => {
         this.fileData = res.file;
-        const existingAfIds = res.afIds as number[];
+        const existingAfIds = res.afIds as number[]
         this.isLoading = false;
         if (existingAfIds && existingAfIds.length > 0) {
           this.existingAfUrls = existingAfIds.map((id) =>

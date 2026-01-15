@@ -22,6 +22,11 @@ fragment DossierFragment on Dossier {
     ...ChampFragment
     ...RootChampFragment
   }
+  demandeur {
+    __typename
+    ...PersonneMoraleFragment
+    ...PersonneMoraleIncompleteFragment
+  }
 }
 
 fragment RootChampFragment on Champ {
@@ -89,6 +94,19 @@ fragment FileFragment on File {
   byteSize: byteSizeBigInt
   url
   createdAt
+}
+
+fragment PersonneMoraleFragment on PersonneMorale {
+    siret
+    siegeSocial
+    entreprise {
+      raisonSociale
+      siretSiegeSocial
+    }
+}
+
+fragment PersonneMoraleIncompleteFragment on PersonneMoraleIncomplete {
+    siret
 }
 
 fragment ColumnFragment on Column {

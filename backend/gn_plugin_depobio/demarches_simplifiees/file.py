@@ -38,32 +38,43 @@ class Fields:
         self.__fields_as_dict = {field.id: field for field in fields}
         self.configuration = configuration_depobio["DEMARCHES_SIMPLIFIEES"]
 
-    def get_libelle(self):
+    def _get_field_by_config_key(self, config_key: str) -> Field:
+        """
+        Retrieves a field object based on the specified configuration key.
+
+        Parameters
+        ----------
+        config_key : str
+            The key representing the desired configuration to retrieve the associated field.
+
+        Returns
+        -------
+        Field
+            The field object associated with the provided configuration key.
+
+        Raises
+        ------
+        ValueError
+            If the field ID retrieved from the configuration does not exist in the internal
+            dictionary of fields.
+        """
+        field_id = self.configuration[config_key]
         try:
-            return self.__fields_as_dict[self.configuration["LIBELLE_ID"]]
+            return self.__fields_as_dict[field_id]
         except KeyError as err:
             raise ValueError(
-                "The value supplied in the configuration for LIBELLE_ID"
-                f' - {self.configuration["LIBELLE_ID"]} - appears to be wrong. Check your config.'
+                f"The value supplied in the configuration for {config_key}"
+                f" - {field_id} - appears to be wrong. Check your config."
             ) from err
+
+    def get_libelle(self):
+        return self._get_field_by_config_key("LIBELLE_ID")
 
     def get_description(self):
-        try:
-            return self.__fields_as_dict[self.configuration["DESCRIPTION_ID"]]
-        except KeyError as err:
-            raise ValueError(
-                "The value supplied in the configuration for DESCRIPTION_ID"
-                f' - {self.configuration["DESCRIPTION_ID"]} - appears to be wrong. Check your config.'
-            ) from err
+        return self._get_field_by_config_key("DESCRIPTION_ID")
 
     def get_date_fin(self):
-        try:
-            return self.__fields_as_dict[self.configuration["DATE_FIN_ID"]]
-        except KeyError as err:
-            raise ValueError(
-                "The value supplied in the configuration for DATE_FIN_ID"
-                f' - {self.configuration["DATE_FIN_ID"]} - appears to be wrong. Check your config.'
-            ) from err
+        return self._get_field_by_config_key("DATE_FIN_ID")
 
     @classmethod
     def champs_from_list(cls, fields: list[dict]) -> "Fields":
@@ -88,6 +99,8 @@ class File:
     libelle: str
     description: str
     date_fin: str
+    contractor: str
+    siret: str
     _fields: Fields
 
     @classmethod
@@ -96,6 +109,8 @@ class File:
             raise ValueError("Data should contain a 'dossier' key")
         file = data["dossier"]
         champs = Fields.champs_from_list(file["champs"] + file["annotations"])
+        siret = file["demandeur"]["entreprise"]["siretSiegeSocial"]
+        contractor = file["demandeur"]["entreprise"]["raisonSociale"]
         return cls(
             file["id"],
             file["number"],
@@ -103,5 +118,7 @@ class File:
             champs.get_libelle().stringValue,
             champs.get_description().stringValue,
             champs.get_date_fin().stringValue,
+            contractor,
+            siret,
             champs,
         )
