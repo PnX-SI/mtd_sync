@@ -12,25 +12,28 @@ with (root_dir / "requirements.in").open() as f:
 
 
 setuptools.setup(
-    name="mtd_sync",
+    name="gn_plugin_depobio",
     version=version,
-    description="SynchronisationMTD",
+    description="PluginDepobio",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     maintainer="Parcs nationaux des Écrins et PATRINAT",
     maintainer_email="geonature@ecrins-parcnational.fr",
-    url="https://github.com/PnX-SI/mtd_sync",
-    packages=setuptools.find_packages("src"),
-    package_dir={"": "src"},
+    url="https://github.com/PnX-SI/gn_plugin_depobio",
+    packages=setuptools.find_packages("backend"),
+    package_dir={"": "backend"},
+    package_data={
+        "gn_plugin_depobio": ["demarches_simplifiees/graphql/*.graphql"],
+    },
     install_requires=requirements,
     entry_points={
         "gn_module": [
-            "code = mtd_sync:MODULE_CODE",
-            "picto = mtd_sync:MODULE_PICTO",
-            "doc_url = mtd_sync:MODULE_DOC_URL",
-            "blueprint = mtd_sync.blueprint:blueprint",
-            "config_schema = mtd_sync.conf_schema_toml:GnModuleSchemaConf",
-            # "migrations = mtd_sync:migrations",
+            "code = gn_plugin_depobio:MODULE_CODE",
+            "picto = gn_plugin_depobio:MODULE_PICTO",
+            "doc_url = gn_plugin_depobio:MODULE_DOC_URL",
+            "blueprint = gn_plugin_depobio.blueprint:blueprint",
+            "config_schema = gn_plugin_depobio.conf_schema_toml:GnModuleSchemaConf",
+            "migrations = gn_plugin_depobio:migrations",
         ],
     },
     classifiers=[

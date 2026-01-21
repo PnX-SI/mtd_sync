@@ -1,0 +1,164 @@
+<div
+  id="all"
+  class="container-fluid"
+>
+  <div class="container card file-container">
+    <div class="card-content">
+      <div class="input-group">
+        <div class="card-body text-center">
+          <h1 class="card-title">Vérifier votre numéro de dossier</h1>
+          <h2 class="card-subtitle">
+            Permet de vérifier si le numéro de dossier existe sur Démarches Simplifiées
+          </h2>
+          <div class="export-content">
+            <div class="search-container">
+              <input
+                type="text"
+                id="dossier-input"
+                class="form-control"
+                placeholder="Numéro de dossier"
+                [(ngModel)]="fileNumber"
+                (keyup.enter)="fileNumber && !isLoading && isValidInteger(fileNumber) && getFile()"
+              />
+              <button
+                class="search-button"
+                (click)="getFile()"
+                [disabled]="!fileNumber || isLoading || !isValidInteger(fileNumber)"
+              >
+                <i class="fa fa-search"></i>
+              </button>
+            </div>
+            <div
+              *ngIf="isLoading"
+              class="loader"
+            >
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+            <div
+              class="result-message"
+              *ngIf="message"
+            >
+              <div [class]="'alert ' + (isError ? 'alert-danger' : 'alert-success')">
+                {{ message }}
+              </div>
+            </div>
+            <div
+              *ngIf="fileData && !isLoading"
+              class="file-data card mt-4 p-3"
+            >
+              <h3 class="text-secondary d-flex align-items-center">
+                <i class="fa fa-folder-open mr-2"></i>
+                Informations du dossier :
+              </h3>
+              <ul class="list-unstyled mt-3">
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-id-card mr-2 text-secondary"></i>
+                    ID:&nbsp;
+                  </span>
+                  {{ fileData.id }}
+                </li>
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-tag mr-2 text-secondary"></i>
+                    Libellé:&nbsp;
+                  </span>
+                  {{ fileData.libelle }}
+                </li>
+
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-hashtag mr-2 text-secondary"></i>
+                    Numéro:&nbsp;
+                  </span>
+                  {{ fileData.number }}
+                </li>
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-info-circle mr-2 text-secondary"></i>
+                    État:&nbsp;
+                  </span>
+                  {{ fileData.state }}
+                </li>
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-calendar mr-2 text-secondary"></i>
+                    Date de fin:&nbsp;
+                  </span>
+                  {{ fileData.date_fin || 'Non spécifiée' }}
+                </li>
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-building mr-2 text-secondary"></i>
+                    Commanditaire / Maitre d'ouvrage:&nbsp;
+                  </span>
+                  {{ fileData.contractor || 'Non spécifié' }}
+                </li>
+                <li class="mb-2">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fa fa-briefcase mr-2 text-secondary"></i>
+                    SIRET:&nbsp;
+                  </span>
+                  {{ fileData.siret || 'Non spécifié' }}
+                </li>
+                <li class="mb-2">
+                  <div class="d-flex flex-column align-items-left">
+                    <button
+                      class="btn btn-outline-secondary btn-sm mt-2 description-button"
+                      (click)="isDescriptionVisible = !isDescriptionVisible"
+                    >
+                      {{ isDescriptionVisible ? 'Cacher la description' : 'Voir la description' }}
+                      <i
+                        class="fa"
+                        [ngClass]="isDescriptionVisible ? 'fa-chevron-up' : 'fa-chevron-down'"
+                      ></i>
+                    </button>
+
+                    <div
+                      *ngIf="isDescriptionVisible"
+                      class="mt-3 p-3 border rounded bg-light w-100 text-left"
+                    >
+                      {{ fileData.description }}
+                    </div>
+                  </div>
+                </li>
+                <li
+                  *ngIf="fileData && !isError && !isLoading"
+                  class="create-af-button"
+                >
+                  <div
+                    *ngIf="existingAfUrls.length > 0"
+                    class="alert alert-info"
+                  >
+                    <i class="fa fa-info-circle mr-2"></i>
+                    Ce dossier est déjà lié à
+                    {{ existingAfUrls.length > 1 ? 'plusieurs cadres' : 'un cadre' }} d'acquisition.
+                    <div>
+                      <a
+                        *ngFor="let url of existingAfUrls; let i = index"
+                        [href]="url"
+                        class="btn btn-primary mr-2 mb-2"
+                      >
+                        <i class="fa fa-external-link mr-2"></i>
+                        Consulter le CA {{ existingAfUrls.length > 1 ? '#' + (i + 1) : '' }}
+                      </a>
+                    </div>
+                  </div>
+
+                  <button
+                    *ngIf="existingAfUrls.length === 0"
+                    class="btn btn-success"
+                    (click)="createAF()"
+                  >
+                    <i class="fa fa-plus-circle mr-2"></i>
+                    Créer CA associé
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

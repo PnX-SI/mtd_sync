@@ -1,12 +1,12 @@
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
-    "src",
+    "backend",
 ]
 
 [tool.coverage.run]
 source = [
-    "mtd_sync",
+    "gn_plugin_depobio",
 ]
 omit = [
     "*/tests/*",
