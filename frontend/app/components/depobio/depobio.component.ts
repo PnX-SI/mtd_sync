@@ -55,7 +55,7 @@ export class DepobioComponent {
     }).subscribe({
       next: (res) => {
         this.fileData = res.file;
-        const existingAfIds = res.afIds as number[]
+        const existingAfIds = res.afIds as number[];
         this.isLoading = false;
         if (existingAfIds && existingAfIds.length > 0) {
           this.existingAfUrls = existingAfIds.map((id) =>
