@@ -88,9 +88,9 @@
                   {{ fileData.date_fin || 'Non spécifiée' }}
                 </li>
                 <li class="mb-2">
-                  <div class="d-flex flex-column align-items-center">
+                  <div class="d-flex flex-column align-items-left">
                     <button
-                      class="btn btn-outline-secondary btn-sm mt-2"
+                      class="btn btn-outline-secondary btn-sm mt-2 description-button"
                       (click)="isDescriptionVisible = !isDescriptionVisible"
                     >
                       {{ isDescriptionVisible ? 'Cacher la description' : 'Voir la description' }}
